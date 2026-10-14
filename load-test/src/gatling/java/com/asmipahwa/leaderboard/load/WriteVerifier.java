@@ -29,8 +29,8 @@ import java.util.stream.Stream;
  *
  * <ol>
  *   <li>every SubmitScore that Gatling saw succeed has exactly one row in {@code score_events};
- *   <li>for every player the run touched, Postgres {@code best_score} equals the highest score
- *       ever submitted for them on that board (no lost update from a race);
+ *   <li>for every player the run touched, Postgres {@code best_score} equals the highest score ever
+ *       submitted for them on that board (no lost update from a race);
  *   <li>their {@code matches_played} equals their number of events (no lost or double count);
  *   <li>Redis holds exactly the Postgres best score for each of them (cache agrees with truth).
  * </ol>
@@ -46,7 +46,8 @@ public final class WriteVerifier {
   private WriteVerifier() {}
 
   public static void main(String[] args) throws Exception {
-    List<String> run = Files.readAllLines(LoadConfig.LOAD_DIR.resolve("gatling-last-write-run.txt"));
+    List<String> run =
+        Files.readAllLines(LoadConfig.LOAD_DIR.resolve("gatling-last-write-run.txt"));
     String runId = run.get(0);
     long retriesBefore = Long.parseLong(run.get(2));
     long[] gatling = gatlingCounts();
@@ -60,7 +61,8 @@ public final class WriteVerifier {
     int redisMismatches = 0;
     Map<UUID, Long> best = new HashMap<>();
     try (Connection db = DriverManager.getConnection(dbUrl, "leaderboard", "leaderboard")) {
-      events = count(db, "SELECT count(*) FROM score_events WHERE idempotency_key LIKE ?", runId + "-%");
+      events =
+          count(db, "SELECT count(*) FROM score_events WHERE idempotency_key LIKE ?", runId + "-%");
       try (PreparedStatement ps =
           db.prepareStatement(
               "SELECT DISTINCT player_id FROM score_events WHERE idempotency_key LIKE ?")) {
@@ -111,7 +113,8 @@ public final class WriteVerifier {
       }
     }
 
-    RedisClient client = RedisClient.create(System.getProperty("redis.uri", "redis://localhost:6379"));
+    RedisClient client =
+        RedisClient.create(System.getProperty("redis.uri", "redis://localhost:6379"));
     try (StatefulRedisConnection<String, String> redis = client.connect()) {
       List<String> keys = players.stream().map(UUID::toString).toList();
       var scores = redis.sync().zmscore(zset, keys.toArray(String[]::new));
@@ -153,7 +156,8 @@ public final class WriteVerifier {
             retries,
             lostWrites);
     System.out.print(summary);
-    Path out = LoadConfig.LOAD_DIR.resolve("evidence").resolve("write-verification-" + runId + ".txt");
+    Path out =
+        LoadConfig.LOAD_DIR.resolve("evidence").resolve("write-verification-" + runId + ".txt");
     Files.createDirectories(out.getParent());
     Files.writeString(out, summary);
     if (lostWrites > 0 || redisMismatches > 0 || events != gatling[1]) {
@@ -164,7 +168,8 @@ public final class WriteVerifier {
   /** Total/ok/ko request counts from the newest ConcurrentWriteSimulation report. */
   private static long[] gatlingCounts() throws Exception {
     Path report;
-    try (Stream<Path> dirs = Files.list(LoadConfig.LOAD_DIR.resolve("reports").resolve("gatling"))) {
+    try (Stream<Path> dirs =
+        Files.list(LoadConfig.LOAD_DIR.resolve("reports").resolve("gatling"))) {
       report =
           dirs.filter(p -> p.getFileName().toString().startsWith("concurrentwritesimulation"))
               .max(Comparator.comparing(p -> p.toFile().lastModified()))
@@ -174,7 +179,9 @@ public final class WriteVerifier {
     if (!m.find()) {
       throw new IllegalStateException("No request counts in " + report);
     }
-    return new long[] {Long.parseLong(m.group(1)), Long.parseLong(m.group(2)), Long.parseLong(m.group(3))};
+    return new long[] {
+      Long.parseLong(m.group(1)), Long.parseLong(m.group(2)), Long.parseLong(m.group(3))
+    };
   }
 
   private static long count(Connection db, String sql, String arg) throws Exception {
@@ -193,7 +200,9 @@ public final class WriteVerifier {
     try {
       String body =
           HttpClient.newHttpClient()
-              .send(HttpRequest.newBuilder(URI.create(url)).build(), HttpResponse.BodyHandlers.ofString())
+              .send(
+                  HttpRequest.newBuilder(URI.create(url)).build(),
+                  HttpResponse.BodyHandlers.ofString())
               .body();
       Matcher m =
           Pattern.compile("(?m)^leaderboard_optimistic_lock_retries_total\\{[^}]*\\} ([0-9.E]+)$")

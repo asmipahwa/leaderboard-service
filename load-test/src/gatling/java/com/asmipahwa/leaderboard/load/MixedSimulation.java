@@ -1,12 +1,12 @@
 package com.asmipahwa.leaderboard.load;
 
+import static com.asmipahwa.leaderboard.load.LoadConfig.perUser;
+import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.grpc;
+import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.statusCode;
 import static io.gatling.javaapi.core.CoreDsl.constantUsersPerSec;
 import static io.gatling.javaapi.core.CoreDsl.exec;
 import static io.gatling.javaapi.core.CoreDsl.global;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
-import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.grpc;
-import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.statusCode;
-import static com.asmipahwa.leaderboard.load.LoadConfig.perUser;
 
 import com.asmipahwa.leaderboard.grpc.v1.GetPlayerRankRequest;
 import com.asmipahwa.leaderboard.grpc.v1.GetTopNRequest;
@@ -55,10 +55,10 @@ public class MixedSimulation extends Simulation {
               .payload(
                   perUser(
                       session ->
-                      GetPlayerRankRequest.newBuilder()
-                          .setLeaderboard(LoadConfig.BENCHMARK_BOARD)
-                          .setPlayerId(randomPlayer())
-                          .build()))
+                          GetPlayerRankRequest.newBuilder()
+                              .setLeaderboard(LoadConfig.BENCHMARK_BOARD)
+                              .setPlayerId(randomPlayer())
+                              .build()))
               .check(statusCode().is(Status.Code.OK)));
 
   private final ChainBuilder submit =
@@ -68,21 +68,24 @@ public class MixedSimulation extends Simulation {
               .payload(
                   perUser(
                       session -> {
-                    ThreadLocalRandom random = ThreadLocalRandom.current();
-                    return SubmitScoreRequest.newBuilder()
-                        .setLeaderboard(LoadConfig.BENCHMARK_BOARD)
-                        .setPlayerId(randomPlayer())
-                        .setScore(Math.round(Math.exp(8.5 + random.nextGaussian() * 0.6)))
-                        .setWin(random.nextBoolean())
-                        .setIdempotencyKey("mixed-" + UUID.randomUUID())
-                        .build();
-                  }))
+                        ThreadLocalRandom random = ThreadLocalRandom.current();
+                        return SubmitScoreRequest.newBuilder()
+                            .setLeaderboard(LoadConfig.BENCHMARK_BOARD)
+                            .setPlayerId(randomPlayer())
+                            .setScore(Math.round(Math.exp(8.5 + random.nextGaussian() * 0.6)))
+                            .setWin(random.nextBoolean())
+                            .setIdempotencyKey("mixed-" + UUID.randomUUID())
+                            .build();
+                      }))
               .check(statusCode().is(Status.Code.OK)));
 
   private final ScenarioBuilder traffic =
       scenario("Mixed traffic")
           .randomSwitch()
-          .on(Choice.withWeight(50.0, topN), Choice.withWeight(20.0, rank), Choice.withWeight(30.0, submit));
+          .on(
+              Choice.withWeight(50.0, topN),
+              Choice.withWeight(20.0, rank),
+              Choice.withWeight(30.0, submit));
 
   {
     setUp(traffic.injectOpen(constantUsersPerSec(RATE).during(Duration.ofSeconds(DURATION))))

@@ -1,12 +1,12 @@
 package com.asmipahwa.leaderboard.load;
 
+import static com.asmipahwa.leaderboard.load.LoadConfig.perUser;
+import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.grpc;
+import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.statusCode;
 import static io.gatling.javaapi.core.CoreDsl.constantUsersPerSec;
 import static io.gatling.javaapi.core.CoreDsl.exec;
 import static io.gatling.javaapi.core.CoreDsl.global;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
-import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.grpc;
-import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.statusCode;
-import static com.asmipahwa.leaderboard.load.LoadConfig.perUser;
 
 import com.asmipahwa.leaderboard.grpc.v1.GetTopNRequest;
 import com.asmipahwa.leaderboard.grpc.v1.LeaderboardServiceGrpc;
@@ -52,14 +52,14 @@ public class RollingUpdateSimulation extends Simulation {
               .payload(
                   perUser(
                       session -> {
-                    ThreadLocalRandom random = ThreadLocalRandom.current();
-                    return SubmitScoreRequest.newBuilder()
-                        .setLeaderboard(LoadConfig.BENCHMARK_BOARD)
-                        .setPlayerId(PLAYERS.get(random.nextInt(PLAYERS.size())))
-                        .setScore(random.nextInt(20_000))
-                        .setIdempotencyKey("rollout-" + UUID.randomUUID())
-                        .build();
-                  }))
+                        ThreadLocalRandom random = ThreadLocalRandom.current();
+                        return SubmitScoreRequest.newBuilder()
+                            .setLeaderboard(LoadConfig.BENCHMARK_BOARD)
+                            .setPlayerId(PLAYERS.get(random.nextInt(PLAYERS.size())))
+                            .setScore(random.nextInt(20_000))
+                            .setIdempotencyKey("rollout-" + UUID.randomUUID())
+                            .build();
+                      }))
               .check(statusCode().is(Status.Code.OK)));
 
   private final ScenarioBuilder traffic =

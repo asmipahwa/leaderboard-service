@@ -57,3 +57,22 @@ Short, honest notes per sprint: goal, what shipped, demo, and a mini retro.
 - Went well: pausing the Redis container in a test (instead of stopping it) keeps its port, so the "Redis is down" test is reliable.
 - To improve: two scripted find-and-replace edits silently missed because the formatter had reflowed the original lines. The Redis-outage test caught it. Now I verify every scripted edit.
 - Learned: very few retries were needed. A conflict only happens when two requests for the same player **both** beat the stored best at the same moment, and most submissions don't beat the best at all.
+
+## Sprint 4: Performance + Observability
+
+**Goal:** prove the read and write claims with Gatling, and make the service debuggable.
+
+**Shipped**
+- Gatling module: read-heavy, concurrent-write (+ `WriteVerifier`), mixed and rolling-update simulations over gRPC. The official Gatling gRPC plugin turned out to be a 5-user trial, so the module uses the open-source phisgr plugin.
+- Metrics (latency histograms per RPC, Redis and DB; lock retries; fallbacks; drift; bulkhead), Grafana dashboard, Prometheus alerts, OpenTelemetry traces to Jaeger, JSON logs with trace ids.
+- Optimizations, all measured ([PERFORMANCE.md](PERFORMANCE.md)): Redis connection pool (GetTopN p95 669 → 4 ms), single-round-trip Lua reads, GetPlayerRank 7 → 1 round trip (server p95 4.07 → 1.29 ms), bulkhead + virtual threads + time-window breaker for bursts.
+- JFR profile and flame graph. Debugging walkthrough with an injected slow query ([OBSERVABILITY.md](OBSERVABILITY.md)).
+- WebSocket live leaderboard at `/demo` plus a score bot.
+
+**Demo:** final results are GetTopN(100) **p95 3 ms** at 300 req/s on 100k players, 0 errors; **6,000 concurrent submissions (3 × 2,000 at once), 0 lost writes**, verified in Postgres and Redis.
+
+**Retro**
+- Went well: measuring before changing anything. The first fix (a missing connection pool) was a 160× win that I would never have guessed.
+- Hard part: adding observability caused an intermittent failure in the concurrency test. Ruling suspects out one at a time, and re-running the old commit, showed it was a thundering herd and not any one library. A bulkhead fixed it.
+- Learned: some "improvements" were within noise (single-Lua top-N, trace sampling). I report them that way instead of claiming a win.
+- Environment: Docker Desktop's Scout CLI hooks made image pulls hang. A hook-free Docker config fixed it.

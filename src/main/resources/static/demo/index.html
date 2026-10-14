@@ -8,7 +8,7 @@
     Live demo for the Game Stats & Leaderboard Service.
     Connects to /ws/leaderboards/{game}/{board} and animates rank changes as scores arrive.
     Run `make demo-bot` to submit random scores and watch the board move.
-    Pick a board with ?game=fc-mobile&board=weekly-high-score
+    Pick a board with ?game=fc-mobile&board=all-time-high-score
   -->
   <style>
     :root {
@@ -96,7 +96,7 @@
 <script>
   const params = new URLSearchParams(location.search);
   const game = params.get("game") || "fc-mobile";
-  const board = params.get("board") || "weekly-high-score";
+  const board = params.get("board") || "all-time-high-score";
   document.getElementById("board").textContent = `${game} / ${board} · top 10`;
 
   const list = document.getElementById("list");

@@ -2,6 +2,7 @@ plugins {
     java
     id("io.gatling.gradle") version "3.9.5.6"
     id("com.google.protobuf")
+    id("com.diffplug.spotless")
 }
 
 repositories {
@@ -74,4 +75,12 @@ tasks.register<JavaExec>("verifyWrites") {
     classpath = sourceSets["gatling"].runtimeClasspath
     mainClass = "com.asmipahwa.leaderboard.load.WriteVerifier"
     systemProperty("load.dir", layout.buildDirectory.get().asFile.absolutePath)
+}
+
+spotless {
+    java {
+        target("src/**/*.java")
+        googleJavaFormat("1.22.0")
+        removeUnusedImports()
+    }
 }

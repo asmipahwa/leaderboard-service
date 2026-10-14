@@ -1,5 +1,9 @@
 package com.asmipahwa.leaderboard.load;
 
+import static com.asmipahwa.leaderboard.load.LoadConfig.perUser;
+import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.extract;
+import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.grpc;
+import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.statusCode;
 import static io.gatling.javaapi.core.CoreDsl.constantUsersPerSec;
 import static io.gatling.javaapi.core.CoreDsl.details;
 import static io.gatling.javaapi.core.CoreDsl.exec;
@@ -7,10 +11,6 @@ import static io.gatling.javaapi.core.CoreDsl.feed;
 import static io.gatling.javaapi.core.CoreDsl.global;
 import static io.gatling.javaapi.core.CoreDsl.rampUsersPerSec;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
-import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.grpc;
-import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.extract;
-import static com.github.phisgr.gatling.kt.grpc.GrpcDsl.statusCode;
-import static com.asmipahwa.leaderboard.load.LoadConfig.perUser;
 
 import com.asmipahwa.leaderboard.grpc.v1.GetPlayerRankRequest;
 import com.asmipahwa.leaderboard.grpc.v1.GetTopNRequest;
@@ -31,16 +31,18 @@ import java.util.stream.Stream;
 /**
  * Backs the resume claim "top-100 leaderboard queries in under 10 ms at p95".
  *
- * <p>90% GetTopN(n=100) and 10% GetPlayerRank (change with -PrankShare) against the seeded 100k-player board, ramping to
- * {@code rate} requests/s (default 300) and holding for {@code duration} seconds (default 120),
- * after a warm-up that is not measured.
+ * <p>90% GetTopN(n=100) and 10% GetPlayerRank (change with -PrankShare) against the seeded
+ * 100k-player board, ramping to {@code rate} requests/s (default 300) and holding for {@code
+ * duration} seconds (default 120), after a warm-up that is not measured.
  */
 public class ReadHeavySimulation extends Simulation {
 
   private static final int RATE = LoadConfig.intProp("rate", 300);
   private static final int DURATION = LoadConfig.intProp("duration", 120);
+
   /** Percent of requests that are GetPlayerRank (the rest are GetTopN(100)). */
   private static final int RANK_SHARE = LoadConfig.intProp("rankShare", 10);
+
   private static final List<String> PLAYERS = Fixtures.playerIds(10_000);
 
   private static final GetTopNRequest TOP_100 =
@@ -68,17 +70,19 @@ public class ReadHeavySimulation extends Simulation {
                   .payload(
                       perUser(
                           session ->
-                          GetPlayerRankRequest.newBuilder()
-                              .setLeaderboard(LoadConfig.BENCHMARK_BOARD)
-                              .setPlayerId(session.getString("playerId"))
-                              .setAround(2)
-                              .build()))
+                              GetPlayerRankRequest.newBuilder()
+                                  .setLeaderboard(LoadConfig.BENCHMARK_BOARD)
+                                  .setPlayerId(session.getString("playerId"))
+                                  .setAround(2)
+                                  .build()))
                   .check(statusCode().is(Status.Code.OK)));
 
   private final ScenarioBuilder readers =
       scenario("Leaderboard readers")
           .randomSwitch()
-          .on(Choice.withWeight(100.0 - RANK_SHARE, topN), Choice.withWeight(RANK_SHARE, playerRank));
+          .on(
+              Choice.withWeight(100.0 - RANK_SHARE, topN),
+              Choice.withWeight(RANK_SHARE, playerRank));
 
   {
     setUp(

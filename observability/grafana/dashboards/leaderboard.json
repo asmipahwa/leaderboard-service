@@ -115,7 +115,9 @@
           "custom": {
             "lineWidth": 2,
             "fillOpacity": 8
-          }
+          },
+          "min": 0,
+          "max": 0.05
         },
         "overrides": []
       },
@@ -131,7 +133,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(leaderboard_query_seconds_count{status!~\"OK|NOT_FOUND|INVALID_ARGUMENT\"}[1m])) / sum(rate(leaderboard_query_seconds_count[1m]))",
+          "expr": "(sum(rate(leaderboard_query_seconds_count{status!~\"OK|NOT_FOUND|INVALID_ARGUMENT\"}[1m])) or vector(0)) / sum(rate(leaderboard_query_seconds_count[1m]))",
           "legendFormat": "error ratio"
         }
       ]

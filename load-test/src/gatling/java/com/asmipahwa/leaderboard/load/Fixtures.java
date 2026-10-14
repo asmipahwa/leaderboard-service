@@ -24,7 +24,9 @@ public final class Fixtures {
   private Fixtures() {}
 
   private static ManagedChannel channel() {
-    return ManagedChannelBuilder.forAddress(LoadConfig.HOST, LoadConfig.PORT).usePlaintext().build();
+    return ManagedChannelBuilder.forAddress(LoadConfig.HOST, LoadConfig.PORT)
+        .usePlaintext()
+        .build();
   }
 
   /** Real player ids from the benchmark board, read in pages of 1,000. */
@@ -53,7 +55,8 @@ public final class Fixtures {
           ids.add(entry.getPlayerId());
         }
       }
-      System.out.printf("Fixtures: loaded %d player ids from a %d-player board%n", ids.size(), total);
+      System.out.printf(
+          "Fixtures: loaded %d player ids from a %d-player board%n", ids.size(), total);
       return ids;
     } finally {
       channel.shutdownNow();
@@ -61,8 +64,8 @@ public final class Fixtures {
   }
 
   /**
-   * Warms the service's JIT, connection pools and caches with the same calls the simulation
-   * makes, so we measure steady state rather than the first seconds after a deploy.
+   * Warms the service's JIT, connection pools and caches with the same calls the simulation makes,
+   * so we measure steady state rather than the first seconds after a deploy.
    */
   public static void warmUp(List<String> playerIds, int requests) throws InterruptedException {
     if (requests <= 0) {

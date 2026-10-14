@@ -6,4 +6,7 @@ plugins {
 rootProject.name = "leaderboard-service"
 
 // Gatling load tests live in their own module so their dependencies never reach the service.
-include("load-test")
+// (The Docker build copies only the service, so the module is optional.)
+if (file("load-test").isDirectory) {
+    include("load-test")
+}

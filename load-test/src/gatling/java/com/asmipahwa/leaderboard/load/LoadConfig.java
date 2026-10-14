@@ -9,8 +9,8 @@ import io.grpc.ManagedChannelBuilder;
 import java.util.function.Function;
 
 /**
- * Settings shared by every simulation, overridable with -D system properties so the same code
- * can target docker-compose, kind or anything else.
+ * Settings shared by every simulation, overridable with -D system properties so the same code can
+ * target docker-compose, kind or anything else.
  */
 public final class LoadConfig {
 

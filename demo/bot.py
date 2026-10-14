@@ -25,7 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="http://localhost:8080")
     parser.add_argument("--game", default="fc-mobile")
-    parser.add_argument("--board", default="weekly-high-score")
+    parser.add_argument("--board", default="all-time-high-score")
     parser.add_argument("--rate", type=float, default=20, help="submissions per second")
     args = parser.parse_args()
 
@@ -35,19 +35,19 @@ def main():
     players = [entry["playerId"] for entry in top["entries"]]
     if not players:
         raise SystemExit("Board is empty; run `make seed` first.")
-    best = top["entries"][0]["score"]
+    # Anchor on today's top score so results stay realistic instead of compounding upward.
+    anchor = top["entries"][0]["score"]
     print(f"Submitting ~{args.rate}/s for {len(players)} players on {args.game}/{args.board} (Ctrl+C to stop)")
 
     sent = 0
     while True:
         player = random.choice(players)
-        # Mostly near the top score, sometimes a new record.
-        score = int(best * random.uniform(0.85, 1.08))
+        # Mostly just below the current record, sometimes a new one.
+        score = int(anchor * random.uniform(0.85, 1.10))
         result = call(
             f"{base}/scores",
             {"playerId": player, "score": score, "idempotencyKey": f"bot-{uuid.uuid4()}", "win": random.random() < 0.5},
         )
-        best = max(best, result["bestScore"])
         sent += 1
         if result["improved"] and result["rank"] <= 10:
             print(f"#{sent}: {player[:8]} scored {score:,} -> rank {result['rank']} (was {result['previousRank']})")
