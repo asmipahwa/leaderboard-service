@@ -124,10 +124,14 @@ public class Reconciler {
   }
 
   long sampleAndFix(ResolvedBoard board) {
+    return sampleAndFix(board, UUID.randomUUID());
+  }
+
+  /** Checks up to {@code sampleSize} players starting at player id {@code from}. */
+  long sampleAndFix(ResolvedBoard board, UUID from) {
     BoardKey key = board.key();
     List<ScoreRow> rows =
-        scores.sample(
-            key.gameId(), key.leaderboardId(), key.periodKey(), UUID.randomUUID(), sampleSize);
+        scores.sample(key.gameId(), key.leaderboardId(), key.periodKey(), from, sampleSize);
     if (rows.isEmpty()) {
       return 0;
     }

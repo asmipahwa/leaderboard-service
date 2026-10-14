@@ -4,6 +4,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
@@ -25,6 +26,7 @@ import org.testcontainers.utility.DockerImageName;
       "grpc.server.port=-1"
     })
 @AutoConfigureMockMvc
+@Import(TestClockConfig.class)
 public abstract class IntegrationTestSupport {
 
   static final String GRPC_NAME = "leaderboard-it";

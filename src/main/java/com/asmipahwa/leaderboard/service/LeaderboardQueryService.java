@@ -70,7 +70,13 @@ public class LeaderboardQueryService {
     ResolvedBoard board = resolve(gameId, leaderboardId, periodKey);
     int size = Validation.pageSize(n, DEFAULT_TOP_N);
     int start = Validation.offset(offset);
+    return guard.call(
+        "top_n",
+        () -> topNFromRedis(board, start, size),
+        () -> topNFromDatabase(board, start, size));
+  }
 
+  private TopNResult topNFromRedis(ResolvedBoard board, int start, int size) {
     Page page = cache.page(board.key(), start, start + size - 1L);
     if (page.state() != State.READY) {
       if (!ensureReady(board)) {

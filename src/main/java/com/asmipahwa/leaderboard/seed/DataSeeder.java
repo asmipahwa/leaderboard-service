@@ -131,6 +131,15 @@ public class DataSeeder implements ApplicationRunner {
           board.period().name(),
           java.sql.Timestamp.from(now));
     }
+    for (GameDef game : SeedCatalog.GAMES) {
+      for (Map.Entry<String, Long> achievement : SeedCatalog.ACHIEVEMENTS.entrySet()) {
+        jdbc.update(
+            "INSERT INTO achievements (game_id, name, threshold) VALUES (?, ?, ?)",
+            game.gameId(),
+            achievement.getKey(),
+            achievement.getValue());
+      }
+    }
     log.info(
         "Seeded {} games, {} leaderboards", SeedCatalog.GAMES.size(), SeedCatalog.BOARDS.size());
   }

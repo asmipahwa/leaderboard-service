@@ -23,18 +23,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Format check and unit tests
-        run: ./gradlew spotlessCheck build -x integrationTest
+        run: ./gradlew spotlessCheck test
 
       # The ubuntu runner has Docker, so Testcontainers can start real Postgres and Redis.
-      - name: Integration tests (Testcontainers)
-        run: ./gradlew integrationTest
+      # `build` also enforces the JaCoCo gate (>= 80% line coverage on service + cache).
+      - name: Integration tests (Testcontainers) and coverage gate
+        run: ./gradlew build
 
-      - name: Upload test reports
+      - name: Upload test and coverage reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
-          path: build/reports/tests/
+          name: test-and-coverage-reports
+          path: |
+            build/reports/tests/
+            build/reports/jacoco/
+            build/evidence/
 
   docker:
     name: Docker image builds

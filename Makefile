@@ -3,7 +3,7 @@ JAVA_HOME ?= $(shell /usr/libexec/java_home -v 21 2>/dev/null)
 export JAVA_HOME
 GRADLE := ./gradlew
 
-.PHONY: help up down seed reseed logs build test it fmt
+.PHONY: help up down seed reseed logs build coverage test it fmt
 
 help: ## Show this help
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -23,8 +23,11 @@ reseed: ## Wipe and re-seed demo data
 logs: ## Tail app logs
 	docker compose logs -f app
 
-build: ## Compile, format-check and run unit tests
-	$(GRADLE) spotlessCheck build -x integrationTest
+build: ## Format check, unit + integration tests, coverage gate
+	$(GRADLE) build
+
+coverage: ## Coverage report (open build/reports/jacoco/test/html/index.html)
+	$(GRADLE) jacocoTestReport
 
 test: ## Run unit tests
 	$(GRADLE) test
