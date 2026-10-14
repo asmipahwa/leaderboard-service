@@ -10,6 +10,7 @@ package com.asmipahwa.leaderboard.cache;
  *   <li>{@code lbmeta:{game}:{board}:{period}}: {@code building} or {@code ready}; tells readers
  *       whether the sorted set is complete
  *   <li>{@code lock:rebuild:{game}:{board}:{period}}: short-lived lock so only one pod rebuilds
+ *   <li>{@code lbver:{game}:{board}:{period}}: counter bumped whenever a score improves
  * </ul>
  */
 public record BoardKey(String gameId, String leaderboardId, String periodKey) {
@@ -24,6 +25,10 @@ public record BoardKey(String gameId, String leaderboardId, String periodKey) {
 
   public String metaKey() {
     return "lbmeta:" + suffix();
+  }
+
+  public String versionKey() {
+    return "lbver:" + suffix();
   }
 
   public String lockKey() {

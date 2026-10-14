@@ -34,7 +34,8 @@ final class ProtoMapper {
         request.getPlayerId(),
         request.getScore(),
         request.getIdempotencyKey(),
-        request.getWin());
+        request.getWin(),
+        request.getPlatform());
   }
 
   static SubmitScoreResponse toProto(SubmitResult result) {
@@ -60,6 +61,7 @@ final class ProtoMapper {
     GetTopNResponse.Builder builder =
         GetTopNResponse.newBuilder()
             .setTotalPlayers(result.totalPlayers())
+            .setEntriesVersion(result.entriesVersion())
             .setAsOf(toTimestamp(result.asOf()));
     for (RankedEntry entry : result.entries()) {
       builder.addEntries(toProto(entry));

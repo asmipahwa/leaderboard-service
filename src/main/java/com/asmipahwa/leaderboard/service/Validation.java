@@ -64,6 +64,18 @@ public final class Validation {
     return score;
   }
 
+  /** Optional device platform: empty means "not sent" (older clients). */
+  public static String platform(String value) {
+    if (value == null || value.isEmpty()) {
+      return null;
+    }
+    if (!ID.matcher(value).matches() || value.length() > 32) {
+      throw new InvalidRequestException(
+          "platform must be up to 32 lowercase letters, digits or '-'");
+    }
+    return value;
+  }
+
   public static String idempotencyKey(String value) {
     if (value == null || value.isBlank() || value.length() > 128) {
       throw new InvalidRequestException("idempotency_key is required (max 128 chars)");

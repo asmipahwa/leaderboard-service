@@ -36,7 +36,8 @@ public class LeaderboardController {
       @NotBlank String playerId,
       @NotNull @Min(0) Long score,
       @NotBlank @Size(max = 128) String idempotencyKey,
-      boolean win) {}
+      boolean win,
+      @Size(max = 32) String platform) {}
 
   private final LeaderboardQueryService queries;
   private final ScoreSubmissionService submissions;
@@ -93,6 +94,7 @@ public class LeaderboardController {
             body.playerId(),
             body.score(),
             body.idempotencyKey(),
-            body.win()));
+            body.win(),
+            body.platform()));
   }
 }

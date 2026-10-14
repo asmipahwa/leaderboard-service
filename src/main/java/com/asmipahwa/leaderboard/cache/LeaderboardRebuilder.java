@@ -98,6 +98,9 @@ public class LeaderboardRebuilder {
           page -> loaded[0] += loadPage(key, board.sortOrder(), page));
 
       expiry.ifPresent(at -> redis.expireAt(key.zsetKey(), at));
+      // The board's contents may have changed, so clients polling entries_version should re-read.
+      redis.opsForValue().increment(key.versionKey());
+      expiry.ifPresent(at -> redis.expireAt(key.versionKey(), at));
       setMeta(key, LeaderboardCache.READY, expiry);
       log.info(
           "Rebuilt leaderboard {} with {} players in {} ms",

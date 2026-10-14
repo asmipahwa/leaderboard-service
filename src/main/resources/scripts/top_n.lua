@@ -2,10 +2,11 @@
 -- scores, their display names, and the rank of the first entry.
 --
 -- KEYS[1] leaderboard sorted set   KEYS[2] leaderboard meta key   KEYS[3] player:names hash
+-- KEYS[4] board version counter
 -- ARGV[1] start position (0-based) ARGV[2] stop position (inclusive)
 --
 -- Returns {state} if the board is not ready, otherwise
--- {"ready", total, first_rank, {id1, score1, id2, score2, ...}, {name1, name2, ...}}.
+-- {"ready", total, first_rank, {id1, score1, id2, score2, ...}, {name1, name2, ...}, version}.
 --
 -- Note: in Redis Cluster these keys would need a shared hash tag to live on the same node.
 local state = redis.call('GET', KEYS[2])
@@ -31,4 +32,5 @@ if tonumber(ARGV[1]) > 0 and #range > 0 then
   first_rank = redis.call('ZCOUNT', KEYS[1], '(' .. range[2], '+inf') + 1
 end
 
-return {state, total, first_rank, range, names}
+local version = tonumber(redis.call('GET', KEYS[4]) or '0')
+return {state, total, first_rank, range, names, version}

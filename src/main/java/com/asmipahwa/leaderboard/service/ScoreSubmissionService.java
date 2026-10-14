@@ -47,7 +47,21 @@ public class ScoreSubmissionService {
       String playerId,
       long score,
       String idempotencyKey,
-      boolean win) {}
+      boolean win,
+      String platform) {
+
+    /** Constructor for callers that predate the optional platform field. */
+    public SubmitCommand(
+        String gameId,
+        String leaderboardId,
+        String periodKey,
+        String playerId,
+        long score,
+        String idempotencyKey,
+        boolean win) {
+      this(gameId, leaderboardId, periodKey, playerId, score, idempotencyKey, win, null);
+    }
+  }
 
   /** What the player sees after submitting. */
   public record SubmitResult(
@@ -123,6 +137,7 @@ public class ScoreSubmissionService {
     UUID playerId = Validation.playerId(command.playerId());
     long score = Validation.score(command.score());
     String idempotencyKey = Validation.idempotencyKey(command.idempotencyKey());
+    String platform = Validation.platform(command.platform());
 
     // Scores always go to the current period; an old weekly board is read-only.
     ResolvedBoard board = registry.resolve(gameId, leaderboardId, null);
@@ -139,7 +154,8 @@ public class ScoreSubmissionService {
       throw new NotFoundException("Unknown player " + playerId);
     }
 
-    WriteOutcome outcome = writeWithRetry(board, playerId, score, command.win(), idempotencyKey);
+    WriteOutcome outcome =
+        writeWithRetry(board, playerId, score, command.win(), idempotencyKey, platform);
     RankChange ranks = updateRanking(board, playerId, outcome.bestScore());
     if (outcome.improved() && !outcome.duplicate()) {
       hub.markChanged(board.key());
@@ -166,11 +182,16 @@ public class ScoreSubmissionService {
    * random jitter ("full jitter") so competing requests don't retry in lock-step.
    */
   private WriteOutcome writeWithRetry(
-      ResolvedBoard board, UUID playerId, long score, boolean win, String idempotencyKey) {
+      ResolvedBoard board,
+      UUID playerId,
+      long score,
+      boolean win,
+      String idempotencyKey,
+      String platform) {
     for (int retry = 0; ; retry++) {
       Timer.Sample sample = Timer.start(meters);
       try {
-        return writer.write(board, playerId, score, win, idempotencyKey, clock.instant());
+        return writer.write(board, playerId, score, win, idempotencyKey, platform, clock.instant());
       } catch (OptimisticLockingFailureException | DataIntegrityViolationException e) {
         if (retry == MAX_RETRIES) {
           meters.counter("leaderboard.optimistic.lock.exhausted").increment();
