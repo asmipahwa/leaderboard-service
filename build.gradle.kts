@@ -46,6 +46,11 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
     implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.2.0")
     implementation("io.github.resilience4j:resilience4j-micrometer:2.2.0")
+    // Observability: traces via OpenTelemetry (exported to Jaeger), JDBC spans, JSON logs.
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+    implementation("net.ttddyy.observation:datasource-micrometer-spring-boot:1.0.5")
+    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
     compileOnly("javax.annotation:javax.annotation-api:1.3.2") // @Generated on gRPC stubs // compile scope: the seeder uses the COPY API
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 

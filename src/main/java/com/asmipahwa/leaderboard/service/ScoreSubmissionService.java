@@ -11,6 +11,7 @@ import com.asmipahwa.leaderboard.error.NotFoundException;
 import com.asmipahwa.leaderboard.service.ScoreWriter.WriteOutcome;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -68,6 +69,7 @@ public class ScoreSubmissionService {
   private final Reconciler reconciler;
   private final MeterRegistry meters;
   private final Counter lockRetries;
+  private final Timer dbTimer;
   private final Clock clock;
 
   public ScoreSubmissionService(
@@ -97,6 +99,12 @@ public class ScoreSubmissionService {
     this.lockRetries =
         Counter.builder("leaderboard.optimistic.lock.retries")
             .description("Score writes retried after losing an optimistic-lock race")
+            .register(meters);
+    this.dbTimer =
+        Timer.builder("leaderboard.db")
+            .description("Score submission transaction time in Postgres (per attempt)")
+            .tag("operation", "submit_transaction")
+            .publishPercentileHistogram()
             .register(meters);
     this.clock = clock;
   }
@@ -153,6 +161,7 @@ public class ScoreSubmissionService {
   private WriteOutcome writeWithRetry(
       ResolvedBoard board, UUID playerId, long score, boolean win, String idempotencyKey) {
     for (int retry = 0; ; retry++) {
+      Timer.Sample sample = Timer.start(meters);
       try {
         return writer.write(board, playerId, score, win, idempotencyKey, clock.instant());
       } catch (OptimisticLockingFailureException | DataIntegrityViolationException e) {
@@ -163,6 +172,8 @@ public class ScoreSubmissionService {
         }
         lockRetries.increment();
         backoff(retry);
+      } finally {
+        sample.stop(dbTimer);
       }
     }
   }

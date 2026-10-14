@@ -6,6 +6,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.micrometer.tagged.TaggedCircuitBreakerMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -63,12 +64,20 @@ public class RedisGuard {
    * @param operation short name for the fallback metric, e.g. {@code top_n}
    */
   public <T> T call(String operation, Supplier<T> redisCall, Supplier<T> fallback) {
+    Timer.Sample sample = Timer.start(meters);
     try {
       return breaker.executeSupplier(redisCall);
     } catch (CallNotPermittedException | DataAccessException e) {
       meters.counter("leaderboard.redis.fallback", "operation", operation).increment();
       log.debug("Redis fallback for {}: {}", operation, e.toString());
       return fallback.get();
+    } finally {
+      sample.stop(
+          Timer.builder("leaderboard.redis")
+              .description("Time spent in Redis-backed operations (including any fallback)")
+              .tag("operation", operation)
+              .publishPercentileHistogram()
+              .register(meters));
     }
   }
 

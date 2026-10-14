@@ -51,6 +51,16 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING:1.0}
+  otlp:
+    tracing:
+      # Unset locally (no exporter); docker-compose and Kubernetes point it at Jaeger.
+      endpoint: ${OTLP_TRACING_ENDPOINT:}
+  metrics:
+    tags:
+      application: leaderboard-service
   endpoint:
     health:
       probes:
@@ -69,6 +79,9 @@ leaderboard:
     push-interval-ms: 250
   grpc:
     default-deadline-ms: 5000
+    slow-call-ms: 50
+  admin:
+    enabled: ${ADMIN_ENDPOINTS:false}
   redis:
     breaker:
       failure-rate-percent: 50

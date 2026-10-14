@@ -57,9 +57,11 @@ public class LeaderboardGrpcService extends LeaderboardServiceGrpc.LeaderboardSe
   @Override
   public void submitScore(
       SubmitScoreRequest request, StreamObserver<SubmitScoreResponse> responseObserver) {
-    responseObserver.onNext(
-        ProtoMapper.toProto(submissions.submit(ProtoMapper.toCommand(request))));
-    responseObserver.onCompleted();
+    try (var ignored = LogContext.of(request.getLeaderboard().getGameId(), request.getPlayerId())) {
+      responseObserver.onNext(
+          ProtoMapper.toProto(submissions.submit(ProtoMapper.toCommand(request))));
+      responseObserver.onCompleted();
+    }
   }
 
   @Override
@@ -96,6 +98,15 @@ public class LeaderboardGrpcService extends LeaderboardServiceGrpc.LeaderboardSe
   public void getPlayerRank(
       GetPlayerRankRequest request, StreamObserver<GetPlayerRankResponse> responseObserver) {
     LeaderboardRef ref = request.getLeaderboard();
+    try (var ignored = LogContext.of(ref.getGameId(), request.getPlayerId())) {
+      playerRank(request, ref, responseObserver);
+    }
+  }
+
+  private void playerRank(
+      GetPlayerRankRequest request,
+      LeaderboardRef ref,
+      StreamObserver<GetPlayerRankResponse> responseObserver) {
     responseObserver.onNext(
         ProtoMapper.toProto(
             queries.playerRank(
