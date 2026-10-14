@@ -25,6 +25,14 @@ spring:
       # Fail fast: a hung Redis should trip the circuit breaker, not hold threads for 60 s.
       timeout: 500ms
       connect-timeout: 500ms
+      lettuce:
+        # Simple commands share one multiplexed connection. Pipelines need a dedicated connection;
+        # without a pool Lettuce would open (and close) a new TCP connection for every pipeline.
+        pool:
+          enabled: true
+          max-active: 16
+          max-idle: 16
+          min-idle: 4
   lifecycle:
     timeout-per-shutdown-phase: 20s
 
