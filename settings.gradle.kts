@@ -4,3 +4,6 @@ plugins {
 }
 
 rootProject.name = "leaderboard-service"
+
+// Gatling load tests live in their own module so their dependencies never reach the service.
+include("load-test")
