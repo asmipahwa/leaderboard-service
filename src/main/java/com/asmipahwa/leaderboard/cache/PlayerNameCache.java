@@ -23,10 +23,13 @@ public class PlayerNameCache {
 
   private final StringRedisTemplate redis;
   private final NamedParameterJdbcTemplate jdbc;
+  private final RedisGuard guard;
 
-  public PlayerNameCache(StringRedisTemplate redis, NamedParameterJdbcTemplate jdbc) {
+  public PlayerNameCache(
+      StringRedisTemplate redis, NamedParameterJdbcTemplate jdbc, RedisGuard guard) {
     this.redis = redis;
     this.jdbc = jdbc;
+    this.guard = guard;
   }
 
   /** Names for the given ids. Ids that don't exist in Postgres either are left out. */
@@ -60,7 +63,7 @@ public class PlayerNameCache {
 
   public void putAll(Map<String, String> names) {
     if (!names.isEmpty()) {
-      redis.opsForHash().putAll(KEY, names);
+      guard.run("names_put", () -> redis.opsForHash().putAll(KEY, names));
     }
   }
 

@@ -6,10 +6,12 @@ import com.asmipahwa.leaderboard.cache.LeaderboardCache.Page;
 import com.asmipahwa.leaderboard.cache.LeaderboardCache.State;
 import com.asmipahwa.leaderboard.cache.LeaderboardRebuilder;
 import com.asmipahwa.leaderboard.cache.PlayerNameCache;
+import com.asmipahwa.leaderboard.cache.RedisGuard;
 import com.asmipahwa.leaderboard.domain.SortOrder;
 import com.asmipahwa.leaderboard.error.NotFoundException;
 import com.asmipahwa.leaderboard.error.UnavailableException;
 import com.asmipahwa.leaderboard.repository.ScoreQueryDao;
+import com.asmipahwa.leaderboard.repository.ScoreQueryDao.ScoreRow;
 import com.asmipahwa.leaderboard.service.Ranking.Scored;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -24,7 +26,9 @@ import org.springframework.stereotype.Service;
  *
  * <p>Every read is served from the Redis sorted set; Postgres is not touched on the hot path. If
  * the set is missing (cold start, Redis restart) it is rebuilt from Postgres once, behind a lock,
- * while other readers wait briefly instead of all hitting the database.
+ * while other readers wait briefly instead of all hitting the database. If Redis itself is down,
+ * {@link RedisGuard} switches every read to an equivalent (slower) Postgres query, so players still
+ * see their leaderboards.
  */
 @Service
 public class LeaderboardQueryService {
@@ -39,6 +43,7 @@ public class LeaderboardQueryService {
   private final PlayerNameCache names;
   private final FriendsService friends;
   private final ScoreQueryDao scoreQueries;
+  private final RedisGuard guard;
   private final Clock clock;
 
   public LeaderboardQueryService(
@@ -48,6 +53,7 @@ public class LeaderboardQueryService {
       PlayerNameCache names,
       FriendsService friends,
       ScoreQueryDao scoreQueries,
+      RedisGuard guard,
       Clock clock) {
     this.registry = registry;
     this.cache = cache;
@@ -55,6 +61,7 @@ public class LeaderboardQueryService {
     this.names = names;
     this.friends = friends;
     this.scoreQueries = scoreQueries;
+    this.guard = guard;
     this.clock = clock;
   }
 
@@ -83,10 +90,16 @@ public class LeaderboardQueryService {
   public PlayerRankResult playerRank(
       String gameId, String leaderboardId, String periodKey, String playerId, int around) {
     ResolvedBoard board = resolve(gameId, leaderboardId, periodKey);
-    String player = Validation.playerId(playerId).toString();
+    UUID player = Validation.playerId(playerId);
     int window = Validation.around(around);
-    requireReady(board);
+    return guard.call(
+        "player_rank",
+        () -> playerRankFromRedis(board, player.toString(), window),
+        () -> playerRankFromDatabase(board, player, window));
+  }
 
+  private PlayerRankResult playerRankFromRedis(ResolvedBoard board, String player, int window) {
+    requireReady(board);
     double myScore =
         cache
             .rankingScore(board.key(), player)
@@ -101,8 +114,14 @@ public class LeaderboardQueryService {
         members.isEmpty() || members.get(0).playerId().equals(player)
             ? myRank
             : cache.rankOf(board.key(), members.get(0).rankingScore());
-    List<RankedEntry> ranked = rank(board, members, start, firstRank);
+    RankedEntry fallbackSelf =
+        new RankedEntry(myRank, player, null, board.sortOrder().fromRankingScore(myScore));
+    return split(rank(board, members, start, firstRank), fallbackSelf, total);
+  }
 
+  /** Splits a ranked window into the player, the entries above and the entries below. */
+  private PlayerRankResult split(List<RankedEntry> ranked, RankedEntry fallbackSelf, long total) {
+    String player = fallbackSelf.playerId();
     int me = -1;
     for (int i = 0; i < ranked.size(); i++) {
       if (ranked.get(i).playerId().equals(player)) {
@@ -114,14 +133,45 @@ public class LeaderboardQueryService {
         me >= 0
             ? ranked.get(me)
             : new RankedEntry(
-                myRank,
+                fallbackSelf.rank(),
                 player,
                 names.nameOf(UUID.fromString(player)),
-                board.sortOrder().fromRankingScore(myScore));
+                fallbackSelf.score());
     List<RankedEntry> above = me >= 0 ? ranked.subList(0, me) : List.of();
     List<RankedEntry> below = me >= 0 ? ranked.subList(me + 1, ranked.size()) : List.of();
     return new PlayerRankResult(
-        self, List.copyOf(above), List.copyOf(below), Ranking.percentile(myRank, total));
+        self, List.copyOf(above), List.copyOf(below), Ranking.percentile(self.rank(), total));
+  }
+
+  private PlayerRankResult playerRankFromDatabase(ResolvedBoard board, UUID player, int window) {
+    var key = board.key();
+    long myScore =
+        scoreQueries
+            .bestScore(key.gameId(), key.leaderboardId(), key.periodKey(), player)
+            .orElseThrow(() -> new NotFoundException("Player has no score on this leaderboard"));
+    long myRank = rankFromDatabase(board, myScore);
+    long position =
+        scoreQueries.position(
+            key.gameId(), key.leaderboardId(), key.periodKey(), board.sortOrder(), player, myScore);
+    int start = (int) Math.max(0, position - window);
+    List<RankedEntry> ranked =
+        scoreQueries.topN(
+            key.gameId(),
+            key.leaderboardId(),
+            key.periodKey(),
+            board.sortOrder(),
+            start,
+            (int) (position - start) + window + 1);
+    long total = scoreQueries.count(key.gameId(), key.leaderboardId(), key.periodKey());
+    return split(ranked, new RankedEntry(myRank, player.toString(), null, myScore), total);
+  }
+
+  /** Competition rank of a score computed in Postgres (used when Redis is unavailable). */
+  public long rankFromDatabase(ResolvedBoard board, long score) {
+    var key = board.key();
+    return scoreQueries.countBetter(
+            key.gameId(), key.leaderboardId(), key.periodKey(), board.sortOrder(), score)
+        + 1;
   }
 
   /** The player and their friends, ranked among themselves. */
@@ -132,8 +182,12 @@ public class LeaderboardQueryService {
     if (names.nameOf(player) == null) {
       throw new NotFoundException("Unknown player " + player);
     }
-    requireReady(board);
+    return guard.call(
+        "friends", () -> friendsFromRedis(board, player), () -> friendsFromDatabase(board, player));
+  }
 
+  private TopNResult friendsFromRedis(ResolvedBoard board, UUID player) {
+    requireReady(board);
     List<String> ids = new ArrayList<>(friends.friendsOf(player));
     ids.add(player.toString());
     List<Double> scores = cache.rankingScores(board.key(), ids);
@@ -144,6 +198,24 @@ public class LeaderboardQueryService {
       }
     }
     // Same order as the global board: best first, ties by player id descending.
+    members.sort(
+        Comparator.comparingDouble(Member::rankingScore)
+            .thenComparing(Member::playerId)
+            .reversed());
+    return new TopNResult(rank(board, members, 0, 1), members.size(), clock.instant());
+  }
+
+  private TopNResult friendsFromDatabase(ResolvedBoard board, UUID player) {
+    var key = board.key();
+    List<UUID> ids = new ArrayList<>();
+    friends.friendsFromDatabase(player).forEach(id -> ids.add(UUID.fromString(id)));
+    ids.add(player);
+    SortOrder order = board.sortOrder();
+    List<Member> members = new ArrayList<>();
+    for (ScoreRow row :
+        scoreQueries.scoresOf(key.gameId(), key.leaderboardId(), key.periodKey(), ids)) {
+      members.add(new Member(row.playerId().toString(), order.toRankingScore(row.bestScore())));
+    }
     members.sort(
         Comparator.comparingDouble(Member::rankingScore)
             .thenComparing(Member::playerId)

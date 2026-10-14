@@ -1,5 +1,6 @@
 plugins {
     java
+    jacoco
     id("org.springframework.boot") version "3.3.13"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.diffplug.spotless") version "6.25.0"
@@ -42,6 +43,8 @@ dependencies {
     implementation("com.google.protobuf:protobuf-java:$protobufVersion")
     implementation("com.google.protobuf:protobuf-java-util:$protobufVersion")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
+    implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.2.0")
+    implementation("io.github.resilience4j:resilience4j-micrometer:2.2.0")
     compileOnly("javax.annotation:javax.annotation-api:1.3.2") // @Generated on gRPC stubs // compile scope: the seeder uses the COPY API
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
@@ -98,6 +101,42 @@ val integrationTest by tasks.registering(Test::class) {
 
 tasks.check {
     dependsOn(integrationTest)
+}
+
+// Coverage from unit AND integration tests combined. The gate covers the packages that hold the
+// logic (service + cache); generated protobuf code and wiring are excluded from the report.
+val coveredPackages = listOf("com/asmipahwa/leaderboard/service/**", "com/asmipahwa/leaderboard/cache/**")
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test, integrationTest)
+    executionData.setFrom(fileTree(layout.buildDirectory).include("jacoco/*.exec"))
+    classDirectories.setFrom(
+        sourceSets.main.get().output.asFileTree.matching {
+            exclude("com/asmipahwa/leaderboard/grpc/v1/**")
+        },
+    )
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    executionData.setFrom(fileTree(layout.buildDirectory).include("jacoco/*.exec"))
+    classDirectories.setFrom(sourceSets.main.get().output.asFileTree.matching { include(coveredPackages) })
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                minimum = "0.80".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }
 
 spotless {
