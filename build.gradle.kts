@@ -24,7 +24,7 @@ repositories {
 extra["testcontainers.version"] = "1.21.4"
 
 // Match the versions grpc-spring-boot-starter 3.1.0 is built against.
-val grpcVersion = "1.63.0"
+val grpcVersion = "1.84.2"
 val protobufVersion = "3.25.3"
 
 dependencies {
