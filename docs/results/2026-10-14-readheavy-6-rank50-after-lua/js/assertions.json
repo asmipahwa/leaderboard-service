@@ -1,0 +1,27 @@
+{
+  "simulation": "com.asmipahwa.leaderboard.load.ReadHeavySimulation",
+  "simulationId": "readheavysimulation-20261014114154231",
+  "start": 1791978114341,
+  "description": "",
+  "scenarios": ["Leaderboard readers"],
+  "assertions": [
+{
+  "path": "GetTopN(100)",
+  "target": "95th percentile of response time",
+  "condition": "is less than",
+  "expectedValues": [10.0],
+  "result": true,
+  "message": "GetTopN(100): 95th percentile of response time is less than 10.0",
+  "actualValue": [3.0]
+},
+{
+  "path": "Global",
+  "target": "percentage of failed events",
+  "condition": "is less than",
+  "expectedValues": [0.1],
+  "result": true,
+  "message": "Global: percentage of failed events is less than 0.1",
+  "actualValue": [0.0]
+}
+  ]
+}

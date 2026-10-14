@@ -1,0 +1,1 @@
+ConcurrentSubmitIT: submissions=2500 released-at-once players=50 failed-requests=0 event-rows=2500 lost-writes=0 optimistic-lock-retries=15 elapsed-ms=5041
