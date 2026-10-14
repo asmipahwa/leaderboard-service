@@ -88,12 +88,25 @@ public class LeaderboardQueryService {
       }
       page = cache.page(board.key(), start, start + size - 1L);
     }
-    List<Member> members = page.members();
-    long firstRank =
-        start == 0 || members.isEmpty()
-            ? 1
-            : cache.rankOf(board.key(), members.get(0).rankingScore());
-    return new TopNResult(rank(board, members, start, firstRank), page.total(), clock.instant());
+    SortOrder order = board.sortOrder();
+    List<Scored> scored = new ArrayList<>(page.members().size());
+    List<String> missingNames = new ArrayList<>();
+    for (Member member : page.members()) {
+      scored.add(new Scored(member.playerId(), order.fromRankingScore(member.rankingScore())));
+      if (!page.names().containsKey(member.playerId())) {
+        missingNames.add(member.playerId());
+      }
+    }
+    Map<String, String> displayNames = page.names();
+    if (!missingNames.isEmpty()) {
+      // Rare: a name fell out of the cache. Load just those from Postgres (and re-cache them).
+      displayNames = new java.util.HashMap<>(page.names());
+      displayNames.putAll(names.namesOf(missingNames));
+    }
+    return new TopNResult(
+        Ranking.assign(scored, start, page.firstRank(), displayNames),
+        page.total(),
+        clock.instant());
   }
 
   /** The player's rank, the {@code around} players above and below, and their percentile. */

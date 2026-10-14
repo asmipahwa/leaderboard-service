@@ -37,13 +37,20 @@ public class LeaderboardCache {
   public record Member(String playerId, double rankingScore) {}
 
   /**
-   * One page read in a single round trip.
+   * One page of a board, read in a single round trip.
    *
-   * @param state whether the set is complete
+   * @param state whether the set is complete (other fields are empty unless READY)
    * @param total number of players on the board
+   * @param firstRank competition rank of the first member
    * @param members page entries, best first
+   * @param names display names by player id (players missing from the cache are absent)
    */
-  public record Page(State state, long total, List<Member> members) {}
+  public record Page(
+      State state,
+      long total,
+      long firstRank,
+      List<Member> members,
+      java.util.Map<String, String> names) {}
 
   /**
    * Outcome of {@link #recordScore}.
@@ -60,9 +67,16 @@ public class LeaderboardCache {
   private final RedisScript<List> recordScoreScript;
 
   @SuppressWarnings("rawtypes")
-  public LeaderboardCache(StringRedisTemplate redis, RedisScript<List> recordScoreScript) {
+  private final RedisScript<List> topNScript;
+
+  @SuppressWarnings("rawtypes")
+  public LeaderboardCache(
+      StringRedisTemplate redis,
+      RedisScript<List> recordScoreScript,
+      RedisScript<List> topNScript) {
     this.redis = redis;
     this.recordScoreScript = recordScoreScript;
+    this.topNScript = topNScript;
   }
 
   public State state(BoardKey key) {
@@ -77,26 +91,38 @@ public class LeaderboardCache {
   }
 
   /**
-   * Reads the board state, its size and positions {@code start..stop} in one pipelined round trip.
-   * This is the hot path behind GetTopN.
+   * Reads positions {@code start..stop} (best first) with names and ranks in one {@code EVALSHA}
+   * (see {@code scripts/top_n.lua}). This is the hot path behind GetTopN.
    */
   public Page page(BoardKey key, long start, long stop) {
-    byte[] meta = bytes(key.metaKey());
-    byte[] zset = bytes(key.zsetKey());
-    List<Object> results =
-        redis.executePipelined(
-            (RedisCallback<Object>)
-                connection -> {
-                  connection.stringCommands().get(meta);
-                  connection.zSetCommands().zCard(zset);
-                  connection.zSetCommands().zRevRangeWithScores(zset, start, stop);
-                  return null;
-                });
-    State state = toState((String) results.get(0));
-    Long total = (Long) results.get(1);
-    @SuppressWarnings("unchecked")
-    Set<TypedTuple<String>> tuples = (Set<TypedTuple<String>>) results.get(2);
-    return new Page(state, total == null ? 0 : total, toMembers(tuples));
+    List<?> result =
+        redis.execute(
+            topNScript,
+            List.of(key.zsetKey(), key.metaKey(), PlayerNameCache.KEY),
+            Long.toString(start),
+            Long.toString(stop));
+    State state = toState((String) result.get(0));
+    if (state != State.READY) {
+      return new Page(state, 0, 0, List.of(), java.util.Map.of());
+    }
+    List<?> range = (List<?>) result.get(3);
+    List<?> names = (List<?>) result.get(4);
+    List<Member> members = new ArrayList<>(range.size() / 2);
+    java.util.Map<String, String> nameById = new java.util.HashMap<>(range.size());
+    for (int i = 0; i < range.size(); i += 2) {
+      String playerId = (String) range.get(i);
+      members.add(new Member(playerId, Double.parseDouble((String) range.get(i + 1))));
+      Object name = names.get(i / 2);
+      if (name != null) {
+        nameById.put(playerId, (String) name);
+      }
+    }
+    return new Page(
+        state,
+        ((Number) result.get(1)).longValue(),
+        ((Number) result.get(2)).longValue(),
+        members,
+        nameById);
   }
 
   /** Positions {@code start..stop} (0-based, best first). */
