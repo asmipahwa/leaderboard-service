@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 # ---- Build stage: compile with the Gradle wrapper and split the jar into layers ----
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /workspace
