@@ -11,16 +11,22 @@ RUN java -Djarmode=layertools -jar build/libs/app.jar extract --destination extr
 
 # ---- Runtime stage: small JRE image, non-root user, layered jar ----
 FROM eclipse-temurin:21-jre-alpine
-RUN addgroup -S app && adduser -S app -G app
+LABEL org.opencontainers.image.source="https://github.com/asmipahwa/leaderboard-service" \
+      org.opencontainers.image.description="Game Stats & Leaderboard Service" \
+      org.opencontainers.image.licenses="MIT"
+# Fixed numeric UID so Kubernetes can verify runAsNonRoot.
+RUN addgroup -S -g 10001 app && adduser -S -u 10001 -G app app
 WORKDIR /app
 # Least-frequently-changing layers first, so a code change only rebuilds the last layer.
 COPY --from=build /workspace/extracted/dependencies/ ./
 COPY --from=build /workspace/extracted/spring-boot-loader/ ./
 COPY --from=build /workspace/extracted/snapshot-dependencies/ ./
 COPY --from=build /workspace/extracted/application/ ./
-USER app
+USER 10001
 EXPOSE 8080 9090
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75"
+# Size the heap from the container memory limit; crash fast (and get restarted) on OOM instead of
+# limping along in a broken state.
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
 HEALTHCHECK --interval=10s --timeout=3s --start-period=40s --retries=3 \
   CMD wget -qO- http://localhost:8080/actuator/health/liveness || exit 1
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
