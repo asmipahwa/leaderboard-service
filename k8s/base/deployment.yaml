@@ -68,7 +68,9 @@ spec:
               memory: 512Mi
             limits:
               cpu: "1"
-              memory: 768Mi
+              # Heap is 60% of this (JAVA_OPTS); the rest is for metaspace, JIT code, Netty
+              # buffers and threads. 768Mi with a 75% heap got OOM-killed under overload.
+              memory: 1Gi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

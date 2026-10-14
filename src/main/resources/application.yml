@@ -80,6 +80,7 @@ leaderboard:
     default-deadline-ms: 10000
     slow-call-ms: 50
     virtual-threads: true
+    max-concurrent-calls-per-connection: 256
   admin:
     enabled: ${ADMIN_ENDPOINTS:false}
   redis:
