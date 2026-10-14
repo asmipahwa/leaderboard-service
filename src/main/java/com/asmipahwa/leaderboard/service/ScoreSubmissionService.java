@@ -67,6 +67,7 @@ public class ScoreSubmissionService {
   private final LiveLeaderboardHub hub;
   private final RedisGuard redisGuard;
   private final Reconciler reconciler;
+  private final SubmissionBulkhead bulkhead;
   private final MeterRegistry meters;
   private final Counter lockRetries;
   private final Timer dbTimer;
@@ -83,6 +84,7 @@ public class ScoreSubmissionService {
       LiveLeaderboardHub hub,
       RedisGuard redisGuard,
       Reconciler reconciler,
+      SubmissionBulkhead bulkhead,
       MeterRegistry meters,
       Clock clock) {
     this.registry = registry;
@@ -95,6 +97,7 @@ public class ScoreSubmissionService {
     this.hub = hub;
     this.redisGuard = redisGuard;
     this.reconciler = reconciler;
+    this.bulkhead = bulkhead;
     this.meters = meters;
     this.lockRetries =
         Counter.builder("leaderboard.optimistic.lock.retries")
@@ -110,6 +113,10 @@ public class ScoreSubmissionService {
   }
 
   public SubmitResult submit(SubmitCommand command) {
+    return bulkhead.run(() -> submitNow(command));
+  }
+
+  private SubmitResult submitNow(SubmitCommand command) {
     String gameId = Validation.id(command.gameId(), "game_id");
     String leaderboardId = Validation.id(command.leaderboardId(), "leaderboard_id");
     String requestedPeriod = Validation.period(command.periodKey());

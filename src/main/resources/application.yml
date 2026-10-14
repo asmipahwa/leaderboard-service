@@ -78,15 +78,21 @@ leaderboard:
   live:
     push-interval-ms: 250
   grpc:
-    default-deadline-ms: 5000
+    default-deadline-ms: 10000
     slow-call-ms: 50
+    virtual-threads: true
   admin:
     enabled: ${ADMIN_ENDPOINTS:false}
   redis:
     breaker:
       failure-rate-percent: 50
-      minimum-calls: 10
+      minimum-calls: 100
       open-seconds: 5
+  submit:
+    # Bulkhead: at most this many submissions run at once; the rest queue (see SubmissionBulkhead).
+    max-concurrent: 64
+    # End-of-match writes can wait; this must stay below the default deadline.
+    queue-timeout-ms: 9000
   reconciler:
     enabled: true
     interval-ms: 60000

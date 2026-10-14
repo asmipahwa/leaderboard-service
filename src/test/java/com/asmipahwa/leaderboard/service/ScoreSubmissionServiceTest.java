@@ -78,6 +78,7 @@ class ScoreSubmissionServiceTest {
             hub,
             guard,
             reconciler,
+            new SubmissionBulkhead(meters, 4, 100),
             meters,
             CLOCK);
     board =
