@@ -25,6 +25,12 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 20s
 
+grpc:
+  server:
+    port: ${GRPC_PORT:9090}
+    # Let in-flight RPCs finish when the pod is asked to stop (zero-downtime rollouts).
+    shutdown-grace-period: 20s
+
 server:
   port: 8080
   shutdown: graceful
@@ -46,3 +52,13 @@ management:
 
 leaderboard:
   current-season: ${LEADERBOARD_SEASON:S1}
+  cache:
+    warm-on-startup: true
+  live:
+    push-interval-ms: 250
+  grpc:
+    default-deadline-ms: 5000
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
