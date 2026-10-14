@@ -1,0 +1,4 @@
+# One-shot seeding run: no web server, exits when DataSeeder finishes.
+spring:
+  main:
+    web-application-type: none

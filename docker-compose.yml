@@ -1,0 +1,65 @@
+# Local environment: the service plus everything it depends on.
+#   make up    -> postgres, redis, app
+#   make seed  -> one-shot job that loads demo data, then exits
+name: leaderboard
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: leaderboard
+      POSTGRES_USER: leaderboard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-leaderboard}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leaderboard -d leaderboard"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    image: leaderboard-service:local
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/leaderboard
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-leaderboard}
+      REDIS_HOST: redis
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  seed:
+    image: leaderboard-service:local
+    profiles: ["seed"]
+    environment:
+      SPRING_PROFILES_ACTIVE: seed
+      DB_URL: jdbc:postgresql://postgres:5432/leaderboard
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-leaderboard}
+      REDIS_HOST: redis
+      SEED_PLAYERS: ${SEED_PLAYERS:-100000}
+      SEED_EVENTS: ${SEED_EVENTS:-500000}
+      SEED_RESET: ${SEED_RESET:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
