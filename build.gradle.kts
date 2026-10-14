@@ -2,7 +2,7 @@ plugins {
     java
     id("org.springframework.boot") version "3.3.13"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.diffplug.spotless") version "6.25.0"
+    id("com.diffplug.spotless") version "8.10.4"
 }
 
 group = "com.asmipahwa"
