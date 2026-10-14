@@ -1,0 +1,19 @@
+# Local Kubernetes cluster for the service: `make kind-up`.
+# One node keeps it light on a laptop; port mappings expose the ingress (HTTP) and a NodePort for
+# gRPC so Gatling and grpcurl on the host can reach the pods.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: leaderboard
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80        # ingress-nginx -> REST, Swagger, demo page
+        hostPort: 8081
+      - containerPort: 30090     # NodePort -> gRPC
+        hostPort: 30090

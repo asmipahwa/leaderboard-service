@@ -1,0 +1,99 @@
+# The service. Everything here exists to make rolling updates zero-downtime:
+#  - maxUnavailable: 0 / maxSurge: 1  -> a new pod must be Ready before an old one is removed
+#  - startupProbe                    -> liveness doesn't kill a pod while the JVM and caches warm up
+#  - readinessProbe                  -> traffic only reaches pods that finished warming Redis
+#  - preStop sleep 10                -> endpoints/kube-proxy stop routing here BEFORE we shut down
+#  - graceful shutdown (app config)  -> in-flight HTTP and gRPC calls finish; gRPC sends GOAWAY
+#  - PodDisruptionBudget             -> node drains never take more than one pod at a time
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leaderboard
+  labels:
+    app: leaderboard
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: leaderboard
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: leaderboard
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /actuator/prometheus
+    spec:
+      # preStop (10 s) + graceful drain (up to 20 s per Spring shutdown phase) + margin.
+      terminationGracePeriodSeconds: 45
+      # Don't inject legacy Docker-link env vars for every Service: a Service called "redis" would
+      # set REDIS_PORT=tcp://10.96.x.x:6379 and clash with our own REDIS_PORT setting.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app: leaderboard
+      containers:
+        - name: app
+          image: ghcr.io/asmipahwa/leaderboard-service:latest
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: grpc
+              containerPort: 9090
+          envFrom:
+            - configMapRef:
+                name: leaderboard-config
+            - secretRef:
+                name: leaderboard-db
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              # Heap is 60% of this (JAVA_OPTS); the rest is for metaspace, JIT code, Netty
+              # buffers and threads. 768Mi with a 75% heap got OOM-killed under overload.
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 36          # up to 3 minutes to start
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 5
+            failureThreshold: 2
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "10"]

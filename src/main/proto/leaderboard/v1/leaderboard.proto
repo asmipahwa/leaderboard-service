@@ -47,6 +47,9 @@ message SubmitScoreRequest {
   string idempotency_key = 4;
   // Feeds player_stats.wins.
   bool win = 5;
+  // Added after v1 shipped (additive, optional): device platform, e.g. "ios", "android", "pc".
+  // Old clients don't send it and keep working; it is stored on score_events for analytics.
+  string platform = 6;
 }
 
 message SubmitScoreResponse {
@@ -85,6 +88,9 @@ message GetTopNResponse {
   repeated LeaderboardEntry entries = 1;
   int64 total_players = 2;
   google.protobuf.Timestamp as_of = 3;
+  // Added after v1 shipped: increases whenever a score on this board improves. A client that
+  // polls can skip re-rendering when it hasn't changed. Old clients simply ignore it.
+  int64 entries_version = 4;
 }
 
 message GetPlayerRankRequest {

@@ -1,0 +1,40 @@
+# ClusterIP service: one virtual IP, balanced by kube-proxy per TCP CONNECTION.
+# gRPC keeps one long-lived HTTP/2 connection and multiplexes every call over it, so a single
+# client sticks to one pod. Fine for many independent clients (game devices); for a few heavy
+# clients (game servers) use the headless service below with client-side round_robin, or an L7
+# proxy / service mesh that balances per request.
+apiVersion: v1
+kind: Service
+metadata:
+  name: leaderboard
+  labels:
+    app: leaderboard
+spec:
+  selector:
+    app: leaderboard
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    - name: grpc
+      port: 9090
+      targetPort: grpc
+      appProtocol: kubernetes.io/h2c
+---
+# Headless service: DNS returns every ready pod IP, so a gRPC client using
+# "dns:///leaderboard-headless.leaderboard:9090" with the round_robin policy spreads calls
+# across pods itself.
+apiVersion: v1
+kind: Service
+metadata:
+  name: leaderboard-headless
+  labels:
+    app: leaderboard
+spec:
+  clusterIP: None
+  selector:
+    app: leaderboard
+  ports:
+    - name: grpc
+      port: 9090
+      targetPort: grpc

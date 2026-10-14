@@ -44,13 +44,15 @@ public class LeaderboardCache {
    * @param firstRank competition rank of the first member
    * @param members page entries, best first
    * @param names display names by player id (players missing from the cache are absent)
+   * @param version board version (see {@link BoardKey#versionKey()})
    */
   public record Page(
       State state,
       long total,
       long firstRank,
       List<Member> members,
-      java.util.Map<String, String> names) {}
+      java.util.Map<String, String> names,
+      long version) {}
 
   /**
    * Outcome of {@link #recordScore}.
@@ -162,12 +164,12 @@ public class LeaderboardCache {
     List<?> result =
         redis.execute(
             topNScript,
-            List.of(key.zsetKey(), key.metaKey(), PlayerNameCache.KEY),
+            List.of(key.zsetKey(), key.metaKey(), PlayerNameCache.KEY, key.versionKey()),
             Long.toString(start),
             Long.toString(stop));
     State state = toState((String) result.get(0));
     if (state != State.READY) {
-      return new Page(state, 0, 0, List.of(), java.util.Map.of());
+      return new Page(state, 0, 0, List.of(), java.util.Map.of(), 0);
     }
     List<?> range = (List<?>) result.get(3);
     List<?> names = (List<?>) result.get(4);
@@ -186,7 +188,8 @@ public class LeaderboardCache {
         ((Number) result.get(1)).longValue(),
         ((Number) result.get(2)).longValue(),
         members,
-        nameById);
+        nameById,
+        ((Number) result.get(5)).longValue());
   }
 
   /** Positions {@code start..stop} (0-based, best first). */
@@ -237,7 +240,7 @@ public class LeaderboardCache {
     List<?> result =
         redis.execute(
             recordScoreScript,
-            List.of(key.zsetKey(), key.metaKey()),
+            List.of(key.zsetKey(), key.metaKey(), key.versionKey()),
             playerId,
             toArg(rankingScore),
             String.valueOf(expireAt.map(Instant::getEpochSecond).orElse(0L)));

@@ -76,3 +76,22 @@ Short, honest notes per sprint: goal, what shipped, demo, and a mini retro.
 - Hard part: adding observability caused an intermittent failure in the concurrency test. Ruling suspects out one at a time, and re-running the old commit, showed it was a thundering herd and not any one library. A bulkhead fixed it.
 - Learned: some "improvements" were within noise (single-Lua top-N, trace sampling). I report them that way instead of claiming a win.
 - Environment: Docker Desktop's Scout CLI hooks made image pulls hang. A hook-free Docker config fixed it.
+
+## Sprint 5: Kubernetes + Delivery
+
+**Goal:** run on Kubernetes with zero-downtime deploys, publish the image, and finish the docs.
+
+**Shipped**
+- Kustomize manifests for kind: 3 replicas, `maxUnavailable: 0`, startup/readiness/liveness probes, `preStop`, PDB, HPA (3–6), Postgres StatefulSet, Redis, ingress, a seed Job, plus a headless Service for client-side gRPC balancing.
+- `make rollout-demo`: **0 of 9,000** requests failed while every pod was replaced (run twice, once with the HPA scaling during the rollout).
+- HPA scaled 3 → 6 at 400 req/s with 0 errors.
+- CI: image pushed to GHCR from `main`, plus a kind deploy + gRPC smoke test.
+- API evolution: `platform` and `entries_version` added; a frozen copy of the original proto proves old clients still work.
+- Docs: DESIGN, K8S, API_EVOLUTION, INTERVIEW_NOTES, final README.
+
+**Demo:** the rollout transcript screenshot in K8S.md.
+
+**Retro**
+- Went well: Kubernetes surfaced four real bugs the tests couldn't: an empty OTLP endpoint, injected `REDIS_PORT`, a seed Job that never exited, and OOM under overload. Each is now fixed and written up.
+- Learned: an HPA can add pods that receive nothing. gRPC sticks to one connection, and a Service balances per connection.
+- To improve: I tried to simulate thousands of separate client connections from one laptop. It only saturated the machine, so I documented the real fix instead of reporting a meaningless number.

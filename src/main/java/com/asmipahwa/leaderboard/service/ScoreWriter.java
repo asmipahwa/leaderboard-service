@@ -63,6 +63,7 @@ public class ScoreWriter {
       long score,
       boolean win,
       String idempotencyKey,
+      String platform,
       Instant now) {
     var key = board.key();
     ScoreId id = new ScoreId(key.gameId(), key.leaderboardId(), key.periodKey(), playerId);
@@ -89,7 +90,14 @@ public class ScoreWriter {
     // the "already processed" branch above.
     events.save(
         new ScoreEvent(
-            idempotencyKey, key.gameId(), key.leaderboardId(), playerId, score, improved, now));
+            idempotencyKey,
+            key.gameId(),
+            key.leaderboardId(),
+            playerId,
+            score,
+            improved,
+            now,
+            platform));
 
     boolean points = board.sortOrder() == SortOrder.DESC;
     stats.recordMatch(key.gameId(), playerId, points ? score : 0, win, now);

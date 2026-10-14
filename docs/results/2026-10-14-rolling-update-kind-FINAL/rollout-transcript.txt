@@ -1,0 +1,139 @@
+[13:48:38] Rolling update demo: 50 req/s for 180s against localhost:30090 (gRPC NodePort)
+{"rollingUpdate":{"maxSurge":1,"maxUnavailable":0},"type":"RollingUpdate"}
+NAME                           READY   STATUS    RESTARTS       AGE     IP            NODE                        NOMINATED NODE   READINESS GATES
+leaderboard-78dc8874d7-5sg2p   1/1     Running   0              14m     10.244.0.31   leaderboard-control-plane   <none>           <none>
+leaderboard-78dc8874d7-6nssc   1/1     Running   2 (119s ago)   10m     10.244.0.34   leaderboard-control-plane   <none>           <none>
+leaderboard-78dc8874d7-h78tj   1/1     Running   1 (3m4s ago)   6m53s   10.244.0.35   leaderboard-control-plane   <none>           <none>
+leaderboard-78dc8874d7-nt84c   1/1     Running   1 (3m4s ago)   6m54s   10.244.0.36   leaderboard-control-plane   <none>           <none>
+leaderboard-78dc8874d7-stgz5   1/1     Running   0              14m     10.244.0.29   leaderboard-control-plane   <none>           <none>
+leaderboard-78dc8874d7-ztvjj   1/1     Running   2 (2m1s ago)   14m     10.244.0.30   leaderboard-control-plane   <none>           <none>
+[13:49:18] Steady traffic for 40s. Restarting every pod now.
+deployment.apps/leaderboard restarted
+[13:49:19] EVENT      NAME                           READY   STATUS              RESTARTS        AGE
+[13:49:19] ADDED      leaderboard-77bcf7f54d-lznjk   0/1     ContainerCreating   0               0s
+[13:49:19] ADDED      leaderboard-78dc8874d7-5sg2p   1/1     Running             0               14m
+[13:49:19] Waiting for deployment "leaderboard" rollout to finish: 1 out of 6 new replicas have been updated...
+[13:49:19] ADDED      leaderboard-78dc8874d7-6nssc   1/1     Running             2 (2m40s ago)   11m
+[13:49:19] ADDED      leaderboard-78dc8874d7-h78tj   1/1     Running             1 (3m45s ago)   7m34s
+[13:49:19] ADDED      leaderboard-78dc8874d7-nt84c   1/1     Running             1 (3m45s ago)   7m35s
+[13:49:19] ADDED      leaderboard-78dc8874d7-stgz5   1/1     Running             0               15m
+[13:49:19] ADDED      leaderboard-78dc8874d7-ztvjj   1/1     Running             2 (2m42s ago)   15m
+[13:49:19] MODIFIED   leaderboard-77bcf7f54d-lznjk   0/1     ContainerCreating   0               0s
+[13:49:19] MODIFIED   leaderboard-77bcf7f54d-lznjk   0/1     Running             0               0s
+[13:49:24] MODIFIED   leaderboard-77bcf7f54d-lznjk   0/1     Running             0               5s
+[13:49:34] MODIFIED   leaderboard-77bcf7f54d-lznjk   0/1     Running             0               15s
+[13:49:34] MODIFIED   leaderboard-77bcf7f54d-lznjk   1/1     Running             0               15s
+[13:49:34] MODIFIED   leaderboard-78dc8874d7-6nssc   1/1     Terminating         2 (2m55s ago)   11m
+[13:49:34] Waiting for deployment "leaderboard" rollout to finish: 1 out of 6 new replicas have been updated...
+[13:49:34] MODIFIED   leaderboard-78dc8874d7-6nssc   1/1     Terminating         2 (2m55s ago)   11m
+[13:49:34] ADDED      leaderboard-77bcf7f54d-l77q7   0/1     Pending             0               0s
+[13:49:34] MODIFIED   leaderboard-77bcf7f54d-l77q7   0/1     Pending             0               0s
+[13:49:34] Waiting for deployment "leaderboard" rollout to finish: 1 out of 6 new replicas have been updated...
+[13:49:34] Waiting for deployment "leaderboard" rollout to finish: 2 out of 6 new replicas have been updated...
+[13:49:34] MODIFIED   leaderboard-77bcf7f54d-l77q7   0/1     ContainerCreating   0               0s
+[13:49:35] MODIFIED   leaderboard-77bcf7f54d-l77q7   0/1     ContainerCreating   0               1s
+[13:49:35] MODIFIED   leaderboard-77bcf7f54d-l77q7   0/1     Running             0               1s
+[13:49:39] MODIFIED   leaderboard-77bcf7f54d-l77q7   0/1     Running             0               5s
+[13:49:45] MODIFIED   leaderboard-78dc8874d7-6nssc   0/1     Error               2 (3m6s ago)    11m
+[13:49:45] Waiting for deployment "leaderboard" rollout to finish: 2 out of 6 new replicas have been updated...
+[13:49:45] Waiting for deployment spec update to be observed...
+[13:49:45] MODIFIED   leaderboard-78dc8874d7-h78tj   1/1     Terminating         1 (4m11s ago)   8m
+[13:49:45] MODIFIED   leaderboard-77bcf7f54d-l77q7   0/1     Terminating         0               11s
+[13:49:45] Waiting for deployment "leaderboard" rollout to finish: 2 out of 4 new replicas have been updated...
+[13:49:45] MODIFIED   leaderboard-78dc8874d7-h78tj   1/1     Terminating         1 (4m11s ago)   8m
+[13:49:45] Waiting for deployment "leaderboard" rollout to finish: 2 out of 4 new replicas have been updated...
+[13:49:45] MODIFIED   leaderboard-77bcf7f54d-l77q7   0/1     Terminating         0               11s
+[13:49:45] Waiting for deployment "leaderboard" rollout to finish: 2 out of 4 new replicas have been updated...
+[13:49:45] MODIFIED   leaderboard-78dc8874d7-ztvjj   1/1     Terminating         2 (3m8s ago)    15m
+[13:49:45] ADDED      leaderboard-77bcf7f54d-mkt28   0/1     Pending             0               0s
+[13:49:45] MODIFIED   leaderboard-78dc8874d7-ztvjj   1/1     Terminating         2 (3m8s ago)    15m
+[13:49:45] Waiting for deployment "leaderboard" rollout to finish: 1 out of 4 new replicas have been updated...
+[13:49:45] MODIFIED   leaderboard-77bcf7f54d-mkt28   0/1     Pending             0               0s
+[13:49:45] MODIFIED   leaderboard-78dc8874d7-6nssc   0/1     Error               2 (3m6s ago)    11m
+[13:49:45] DELETED    leaderboard-78dc8874d7-6nssc   0/1     Error               2 (3m6s ago)    11m
+[13:49:45] Waiting for deployment "leaderboard" rollout to finish: 2 out of 4 new replicas have been updated...
+[13:49:45] MODIFIED   leaderboard-77bcf7f54d-mkt28   0/1     ContainerCreating   0               0s
+[13:49:45] MODIFIED   leaderboard-77bcf7f54d-mkt28   0/1     ContainerCreating   0               0s
+[13:49:46] MODIFIED   leaderboard-77bcf7f54d-mkt28   0/1     Running             0               1s
+[13:49:50] MODIFIED   leaderboard-77bcf7f54d-mkt28   0/1     Running             0               5s
+[13:49:56] MODIFIED   leaderboard-77bcf7f54d-l77q7   0/1     Error               0               22s
+[13:49:56] Waiting for deployment "leaderboard" rollout to finish: 2 out of 4 new replicas have been updated...
+[13:49:56] MODIFIED   leaderboard-78dc8874d7-h78tj   0/1     Error               1 (4m22s ago)   8m11s
+[13:49:56] Waiting for deployment "leaderboard" rollout to finish: 2 out of 4 new replicas have been updated...
+[13:49:56] MODIFIED   leaderboard-78dc8874d7-ztvjj   0/1     Error               2 (3m19s ago)   15m
+[13:49:56] Waiting for deployment "leaderboard" rollout to finish: 2 out of 4 new replicas have been updated...
+[13:49:56] MODIFIED   leaderboard-77bcf7f54d-l77q7   0/1     Error               0               22s
+[13:49:56] DELETED    leaderboard-77bcf7f54d-l77q7   0/1     Error               0               22s
+[13:49:56] MODIFIED   leaderboard-78dc8874d7-ztvjj   0/1     Error               2 (3m19s ago)   15m
+[13:49:56] DELETED    leaderboard-78dc8874d7-ztvjj   0/1     Error               2 (3m19s ago)   15m
+[13:49:56] MODIFIED   leaderboard-78dc8874d7-h78tj   0/1     Error               1 (4m22s ago)   8m11s
+[13:49:56] DELETED    leaderboard-78dc8874d7-h78tj   0/1     Error               1 (4m22s ago)   8m11s
+[13:50:06] MODIFIED   leaderboard-77bcf7f54d-mkt28   0/1     Running             0               21s
+[13:50:06] MODIFIED   leaderboard-77bcf7f54d-mkt28   1/1     Running             0               21s
+[13:50:06] MODIFIED   leaderboard-78dc8874d7-nt84c   1/1     Terminating         1 (4m32s ago)   8m22s
+[13:50:06] Waiting for deployment "leaderboard" rollout to finish: 2 out of 4 new replicas have been updated...
+[13:50:06] MODIFIED   leaderboard-78dc8874d7-nt84c   1/1     Terminating         1 (4m32s ago)   8m22s
+[13:50:06] ADDED      leaderboard-77bcf7f54d-6wq59   0/1     Pending             0               0s
+[13:50:06] Waiting for deployment "leaderboard" rollout to finish: 2 out of 4 new replicas have been updated...
+[13:50:06] MODIFIED   leaderboard-77bcf7f54d-6wq59   0/1     Pending             0               0s
+[13:50:06] MODIFIED   leaderboard-77bcf7f54d-6wq59   0/1     ContainerCreating   0               0s
+[13:50:06] Waiting for deployment "leaderboard" rollout to finish: 3 out of 4 new replicas have been updated...
+[13:50:06] MODIFIED   leaderboard-77bcf7f54d-6wq59   0/1     ContainerCreating   0               0s
+[13:50:06] MODIFIED   leaderboard-77bcf7f54d-6wq59   0/1     Running             0               0s
+[13:50:11] MODIFIED   leaderboard-77bcf7f54d-6wq59   0/1     Running             0               5s
+[13:50:16] MODIFIED   leaderboard-78dc8874d7-nt84c   0/1     Error               1 (4m42s ago)   8m32s
+[13:50:16] Waiting for deployment "leaderboard" rollout to finish: 3 out of 4 new replicas have been updated...
+[13:50:17] MODIFIED   leaderboard-78dc8874d7-nt84c   0/1     Error               1 (4m43s ago)   8m33s
+[13:50:17] DELETED    leaderboard-78dc8874d7-nt84c   0/1     Error               1 (4m43s ago)   8m33s
+[13:50:21] MODIFIED   leaderboard-77bcf7f54d-6wq59   0/1     Running             0               15s
+[13:50:26] MODIFIED   leaderboard-77bcf7f54d-6wq59   1/1     Running             0               20s
+[13:50:26] MODIFIED   leaderboard-78dc8874d7-5sg2p   1/1     Terminating         0               15m
+[13:50:26] Waiting for deployment "leaderboard" rollout to finish: 3 out of 4 new replicas have been updated...
+[13:50:26] MODIFIED   leaderboard-78dc8874d7-5sg2p   1/1     Terminating         0               15m
+[13:50:26] ADDED      leaderboard-77bcf7f54d-xsg6k   0/1     Pending             0               0s
+[13:50:26] MODIFIED   leaderboard-77bcf7f54d-xsg6k   0/1     Pending             0               0s
+[13:50:26] Waiting for deployment "leaderboard" rollout to finish: 3 out of 4 new replicas have been updated...
+[13:50:26] MODIFIED   leaderboard-77bcf7f54d-xsg6k   0/1     ContainerCreating   0               0s
+[13:50:26] Waiting for deployment "leaderboard" rollout to finish: 1 old replicas are pending termination...
+[13:50:27] MODIFIED   leaderboard-77bcf7f54d-xsg6k   0/1     ContainerCreating   0               1s
+[13:50:27] MODIFIED   leaderboard-77bcf7f54d-xsg6k   0/1     Running             0               1s
+[13:50:32] MODIFIED   leaderboard-77bcf7f54d-xsg6k   0/1     Running             0               6s
+[13:50:37] MODIFIED   leaderboard-78dc8874d7-5sg2p   0/1     Error               0               16m
+[13:50:37] Waiting for deployment "leaderboard" rollout to finish: 1 old replicas are pending termination...
+[13:50:38] MODIFIED   leaderboard-78dc8874d7-5sg2p   0/1     Error               0               16m
+[13:50:38] DELETED    leaderboard-78dc8874d7-5sg2p   0/1     Error               0               16m
+[13:50:42] MODIFIED   leaderboard-77bcf7f54d-xsg6k   0/1     Running             0               16s
+[13:50:47] MODIFIED   leaderboard-77bcf7f54d-xsg6k   1/1     Running             0               21s
+[13:50:47] MODIFIED   leaderboard-78dc8874d7-stgz5   1/1     Terminating         0               16m
+[13:50:47] Waiting for deployment "leaderboard" rollout to finish: 1 old replicas are pending termination...
+[13:50:47] MODIFIED   leaderboard-78dc8874d7-stgz5   1/1     Terminating         0               16m
+[13:50:47] deployment "leaderboard" successfully rolled out
+[13:50:47] Rollout finished. Pods now:
+NAME                           READY   STATUS        RESTARTS   AGE   IP            NODE                        NOMINATED NODE   READINESS GATES
+leaderboard-77bcf7f54d-6wq59   1/1     Running       0          42s   10.244.0.40   leaderboard-control-plane   <none>           <none>
+leaderboard-77bcf7f54d-lznjk   1/1     Running       0          89s   10.244.0.37   leaderboard-control-plane   <none>           <none>
+leaderboard-77bcf7f54d-mkt28   1/1     Running       0          63s   10.244.0.39   leaderboard-control-plane   <none>           <none>
+leaderboard-77bcf7f54d-xsg6k   1/1     Running       0          22s   10.244.0.41   leaderboard-control-plane   <none>           <none>
+leaderboard-78dc8874d7-stgz5   1/1     Terminating   0          16m   10.244.0.29   leaderboard-control-plane   <none>           <none>
+[13:50:48] Waiting for Gatling to finish...
+---- Global Information --------------------------------------------------------
+> request count                                       9000 (OK=9000   KO=0     )
+> min response time                                      1 (OK=1      KO=-     )
+> max response time                                   2333 (OK=2333   KO=-     )
+> mean response time                                    25 (OK=25     KO=-     )
+> std deviation                                        137 (OK=137    KO=-     )
+> response time 50th percentile                          3 (OK=3      KO=-     )
+> response time 75th percentile                          7 (OK=7      KO=-     )
+> response time 95th percentile                         23 (OK=23     KO=-     )
+> response time 99th percentile                        737 (OK=737    KO=-     )
+> mean requests/sec                                     50 (OK=50     KO=-     )
+---- Response Time Distribution ------------------------------------------------
+> t < 800 ms                                          8922 ( 99%)
+> 800 ms <= t < 1200 ms                                 52 (  1%)
+> t >= 1200 ms                                          26 (  0%)
+> failed                                                 0 (  0%)
+================================================================================
+Please open the following file: file:///Users/asmipahwa/.superset/sessions/zircon-feverfew-ca27a28b/load-test/build/reports/gatling/rollingupdatesimulation-20261014134845496/index.html
+Global: count of failed events is 0.0 : true
+[13:51:46] Gatling exit status: 0 (0 = zero failed requests)
+[13:51:46] Transcript: load-test/build/evidence/rollout-20261014T134838Z.txt

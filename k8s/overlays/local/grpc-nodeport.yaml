@@ -1,0 +1,15 @@
+# Exposes gRPC on the kind node's port 30090 (mapped to localhost:30090 in kind-config.yaml),
+# so Gatling and grpcurl on the laptop can call the pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: leaderboard-grpc
+spec:
+  type: NodePort
+  selector:
+    app: leaderboard
+  ports:
+    - name: grpc
+      port: 9090
+      targetPort: grpc
+      nodePort: 30090

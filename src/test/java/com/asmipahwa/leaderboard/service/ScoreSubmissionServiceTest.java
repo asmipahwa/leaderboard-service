@@ -104,7 +104,7 @@ class ScoreSubmissionServiceTest {
 
   @Test
   void improvedScoreUpdatesRankingAndNotifiesSubscribers() {
-    when(writer.write(eq(board), eq(PLAYER), eq(900L), eq(true), eq("key-1"), any()))
+    when(writer.write(eq(board), eq(PLAYER), eq(900L), eq(true), eq("key-1"), any(), any()))
         .thenReturn(new WriteOutcome(true, 900, false, List.of("Pro")));
     when(cache.recordScore(eq(board.key()), eq(PLAYER.toString()), eq(900.0), any()))
         .thenReturn(new RankChange(true, 7, 2));
@@ -122,7 +122,7 @@ class ScoreSubmissionServiceTest {
 
   @Test
   void firstSubmissionHasNoPreviousRank() {
-    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any()))
+    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any()))
         .thenReturn(outcome(true, 300));
     when(cache.recordScore(any(), anyString(), anyDouble(), any()))
         .thenReturn(new RankChange(true, 0, 12));
@@ -135,7 +135,7 @@ class ScoreSubmissionServiceTest {
 
   @Test
   void scoreThatDoesNotImproveKeepsBestAndSkipsNotification() {
-    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any()))
+    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any()))
         .thenReturn(outcome(false, 900));
     when(cache.recordScore(any(), anyString(), anyDouble(), any()))
         .thenReturn(new RankChange(true, 2, 2));
@@ -150,7 +150,7 @@ class ScoreSubmissionServiceTest {
 
   @Test
   void lostOptimisticLockRaceIsRetriedWithFreshData() {
-    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any()))
+    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any()))
         .thenThrow(new ObjectOptimisticLockingFailureException("Score", "id"))
         .thenThrow(new DataIntegrityViolationException("duplicate key scores_pkey"))
         .thenReturn(outcome(true, 900));
@@ -160,19 +160,20 @@ class ScoreSubmissionServiceTest {
     SubmitResult result = service.submit(command(900));
 
     assertThat(result.improved()).isTrue();
-    verify(writer, times(3)).write(any(), any(), anyLong(), anyBoolean(), anyString(), any());
+    verify(writer, times(3))
+        .write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any());
     assertThat(retries()).isEqualTo(2);
   }
 
   @Test
   void givesUpWithConflictAfterFiveRetries() {
-    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any()))
+    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any()))
         .thenThrow(new ObjectOptimisticLockingFailureException("Score", "id"));
 
     assertThatThrownBy(() -> service.submit(command(900))).isInstanceOf(ConflictException.class);
 
     verify(writer, times(1 + ScoreSubmissionService.MAX_RETRIES))
-        .write(any(), any(), anyLong(), anyBoolean(), anyString(), any());
+        .write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any());
     assertThat(retries()).isEqualTo(ScoreSubmissionService.MAX_RETRIES);
     verify(cache, never()).recordScore(any(), anyString(), anyDouble(), any());
   }
@@ -183,12 +184,12 @@ class ScoreSubmissionServiceTest {
     when(idempotency.previousResult("key-1")).thenReturn(Optional.of(stored));
 
     assertThat(service.submit(command(900))).isEqualTo(stored);
-    verify(writer, never()).write(any(), any(), anyLong(), anyBoolean(), anyString(), any());
+    verify(writer, never()).write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any());
   }
 
   @Test
   void duplicateDetectedInPostgresIsNotRememberedAgainOrBroadcast() {
-    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any()))
+    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any()))
         .thenReturn(new WriteOutcome(true, 900, true, List.of()));
     when(cache.recordScore(any(), anyString(), anyDouble(), any()))
         .thenReturn(new RankChange(true, 1, 1));
@@ -207,7 +208,7 @@ class ScoreSubmissionServiceTest {
 
   @Test
   void coldBoardIsRebuiltThenRankedAgain() {
-    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any()))
+    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any()))
         .thenReturn(outcome(true, 500));
     when(cache.recordScore(any(), anyString(), anyDouble(), any()))
         .thenReturn(new RankChange(false, 0, 0), new RankChange(true, 4, 4));
@@ -220,7 +221,7 @@ class ScoreSubmissionServiceTest {
 
   @Test
   void redisDownAfterCommitStillSucceedsWithDatabaseRankAndMarksBoardDirty() {
-    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any()))
+    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any()))
         .thenReturn(outcome(true, 500));
     when(cache.recordScore(any(), anyString(), anyDouble(), any()))
         .thenThrow(new RedisConnectionFailureException("down"));
@@ -240,7 +241,7 @@ class ScoreSubmissionServiceTest {
             new Leaderboard("fc-mobile", "lap", "Lap", SortOrder.ASC, ResetPeriod.WEEKLY),
             new BoardKey("fc-mobile", "lap", "2026-W42"));
     when(registry.resolve("fc-mobile", "lap", null)).thenReturn(lap);
-    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any()))
+    when(writer.write(any(), any(), anyLong(), anyBoolean(), anyString(), any(), any()))
         .thenReturn(outcome(true, 58_500));
     when(cache.recordScore(any(), anyString(), anyDouble(), any()))
         .thenReturn(new RankChange(true, 0, 1));

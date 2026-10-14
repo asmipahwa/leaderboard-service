@@ -54,10 +54,9 @@ management:
   tracing:
     sampling:
       probability: ${TRACING_SAMPLING:1.0}
-  otlp:
-    tracing:
-      # Unset locally (no exporter); docker-compose and Kubernetes point it at Jaeger.
-      endpoint: ${OTLP_TRACING_ENDPOINT:}
+  # Trace export is enabled only where MANAGEMENT_OTLP_TRACING_ENDPOINT is set (docker-compose
+  # points it at Jaeger). Don't default it to "": an empty endpoint still creates an exporter,
+  # which then fails at startup.
   metrics:
     tags:
       application: leaderboard-service
@@ -81,6 +80,7 @@ leaderboard:
     default-deadline-ms: 10000
     slow-call-ms: 50
     virtual-threads: true
+    max-concurrent-calls-per-connection: 256
   admin:
     enabled: ${ADMIN_ENDPOINTS:false}
   redis:

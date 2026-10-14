@@ -107,7 +107,8 @@ public class LeaderboardQueryService {
     return new TopNResult(
         Ranking.assign(scored, start, page.firstRank(), displayNames),
         page.total(),
-        clock.instant());
+        clock.instant(),
+        page.version());
   }
 
   /** The player's rank, the {@code around} players above and below, and their percentile. */

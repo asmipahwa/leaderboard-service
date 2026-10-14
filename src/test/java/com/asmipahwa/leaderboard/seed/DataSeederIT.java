@@ -14,7 +14,13 @@ import org.springframework.test.context.TestPropertySource;
 // Own @SpringBootTest: the seed profile runs without a gRPC server.
 @SpringBootTest
 @ActiveProfiles("seed")
-@TestPropertySource(properties = {"seed.players=500", "seed.events=3000", "seed.reset=true"})
+@TestPropertySource(
+    properties = {
+      "seed.players=500",
+      "seed.events=3000",
+      "seed.reset=true",
+      "seed.exit-when-done=false" // never System.exit the test JVM
+    })
 class DataSeederIT extends IntegrationTestSupport {
 
   @Autowired JdbcTemplate jdbc;

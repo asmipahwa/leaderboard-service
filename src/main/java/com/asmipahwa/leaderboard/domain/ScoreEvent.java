@@ -45,6 +45,10 @@ public class ScoreEvent {
   @Column(name = "received_at", nullable = false)
   private Instant receivedAt;
 
+  /** Device platform; null for clients built before the field existed. */
+  @Column(name = "platform")
+  private String platform;
+
   protected ScoreEvent() {}
 
   public ScoreEvent(
@@ -54,7 +58,8 @@ public class ScoreEvent {
       UUID playerId,
       long score,
       boolean accepted,
-      Instant receivedAt) {
+      Instant receivedAt,
+      String platform) {
     this.idempotencyKey = idempotencyKey;
     this.gameId = gameId;
     this.leaderboardId = leaderboardId;
@@ -62,6 +67,7 @@ public class ScoreEvent {
     this.score = score;
     this.accepted = accepted;
     this.receivedAt = receivedAt;
+    this.platform = platform;
   }
 
   public Long getEventId() {
@@ -94,5 +100,9 @@ public class ScoreEvent {
 
   public Instant getReceivedAt() {
     return receivedAt;
+  }
+
+  public String getPlatform() {
+    return platform;
   }
 }

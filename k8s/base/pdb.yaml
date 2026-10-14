@@ -1,0 +1,10 @@
+# Voluntary disruptions (node drains, cluster upgrades) must leave at least 2 pods running.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: leaderboard
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: leaderboard
