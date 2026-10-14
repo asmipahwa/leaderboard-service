@@ -25,8 +25,10 @@ Why the official `io.gatling:gatling-grpc-java` plugin isn't used: it is a trial
 | Server-side p95 (Prometheus, same run) | | | | | GetTopN **1.68 ms**, GetPlayerRank 1.35 ms | | |
 | **Concurrent SubmitScore** | 3 bursts of **2,000 simultaneous** calls on 500 shared players | 6,000 | **0** | 480 ms | 1,112 ms | 1,237 ms | [concurrent-write-FINAL](results/2026-10-14-concurrent-write-FINAL/index.html) |
 | ↳ WriteVerifier | Postgres + Redis checked after the run | 6,000 event rows for 6,000 OK responses | | | | | **0 lost writes**, 21 optimistic-lock retries ([output](results/2026-10-14-concurrent-write-FINAL/write-verification.txt)) |
-| **ConcurrentSubmitIT** (JUnit + Testcontainers) | 2,500 submissions released at once on 50 players | 2,500 | **0** | | | | **0 lost writes**, 15 retries ([output](results/2026-10-14-concurrent-submit-it/concurrent-submit-it.txt)) |
+| **ConcurrentSubmitIT** (JUnit + Testcontainers) | 2,500 submissions released at once on 50 players | 2,500 | **0** | | | | **0 lost writes**, optimistic-lock retries > 0, 0 client retries needed locally ([output](results/2026-10-14-concurrent-submit-it/concurrent-submit-it.txt)) |
 | Mixed traffic | 200 req/s for 5 min (50% top-100, 20% rank, 30% submit) | 60,000 | **0** | 2 ms | 5 ms | 7 ms | [mixed-5min](results/2026-10-14-mixed-5min/index.html) |
+
+Load shedding: if a burst can't drain within 9 s (slow machine, e.g. a 2-core CI runner), the bulkhead rejects the excess with `UNAVAILABLE` and clients retry with the same idempotency key. In a squeezed test run (queue limit 1.5 s), the server shed 3,027 requests, the clients retried them, and the result was still exactly 2,500 events and 0 lost writes.
 
 Write latency during a burst (p95 ~1.1 s) is queueing, not slowness: 2,000 transactions arrive in the same millisecond and Postgres drains them about 1,500 per second through 20 connections. Outside bursts, SubmitScore p95 is 7 ms (mixed run).
 
