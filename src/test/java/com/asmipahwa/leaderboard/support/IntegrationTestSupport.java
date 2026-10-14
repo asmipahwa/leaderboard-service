@@ -1,5 +1,8 @@
 package com.asmipahwa.leaderboard.support;
 
+import io.grpc.ManagedChannel;
+import io.grpc.inprocess.InProcessChannelBuilder;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -12,9 +15,23 @@ import org.testcontainers.utility.DockerImageName;
  *
  * <p>The containers are started once per JVM (the "singleton container" pattern) and shared by
  * every IT class, which keeps the suite fast while still testing against the real databases.
+ *
+ * <p>The gRPC server runs in-process (no network port), and every test class shares one Spring
+ * context, so the in-process server name is registered only once.
  */
-@SpringBootTest
+@SpringBootTest(
+    properties = {
+      "grpc.server.in-process-name=" + IntegrationTestSupport.GRPC_NAME,
+      "grpc.server.port=-1"
+    })
+@AutoConfigureMockMvc
 public abstract class IntegrationTestSupport {
+
+  static final String GRPC_NAME = "leaderboard-it";
+
+  /** Channel to the in-process gRPC server, shared by all tests. */
+  protected static final ManagedChannel CHANNEL =
+      InProcessChannelBuilder.forName(GRPC_NAME).directExecutor().build();
 
   protected static final PostgreSQLContainer<?> POSTGRES =
       new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"))
