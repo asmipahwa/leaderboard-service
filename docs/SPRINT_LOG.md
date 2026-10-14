@@ -37,3 +37,23 @@ Short, honest notes per sprint: goal, what shipped, demo, and a mini retro.
 **Retro**
 - Went well: keeping protobuf out of the service layer made the REST facade a 100-line file.
 - To improve: `localhost:5432` was taken by a Postgres already installed on my laptop, so the app silently connected to the wrong database. Compose now uses host port 5433.
+
+## Sprint 3: Correctness
+
+**Goal:** no lost or double-counted writes, and leaderboards that survive a Redis outage.
+
+**Shipped**
+- Optimistic locking retry loop: up to 5 retries with full-jitter exponential backoff (5 to 80 ms), metric `leaderboard_optimistic_lock_retries_total`, gRPC `ABORTED` when exhausted.
+- Idempotency keys: Redis `SET NX` fast path (24 h), backed by the `UNIQUE` constraint in Postgres. A concurrent duplicate loses on the constraint, retries, and sees the stored event.
+- Player stats via an atomic upsert (`x = x + 1`); achievements unlocked once via `INSERT ... ON CONFLICT DO NOTHING`.
+- `RedisGuard` (Resilience4j circuit breaker, 500 ms Redis timeouts). Every Redis read has a Postgres fallback; Redis writes that fail after commit mark the board dirty for the reconciler.
+- `Reconciler`: rebuilds dirty boards and repairs sampled drift with `ZADD GT`, metric `leaderboard_drift_fixed_total`.
+- JaCoCo gate (80% lines on `service` + `cache`), enforced in CI. Current: **93.2%**.
+
+**Demo:** `ConcurrentSubmitIT` released 2,500 submissions at once on 50 players:
+`failed-requests=0 event-rows=2500 lost-writes=0 optimistic-lock-retries=5`.
+
+**Retro**
+- Went well: pausing the Redis container in a test (instead of stopping it) keeps its port, so the "Redis is down" test is reliable.
+- To improve: two scripted find-and-replace edits silently missed because the formatter had reflowed the original lines. The Redis-outage test caught it. Now I verify every scripted edit.
+- Learned: very few retries were needed. A conflict only happens when two requests for the same player **both** beat the stored best at the same moment, and most submissions don't beat the best at all.
