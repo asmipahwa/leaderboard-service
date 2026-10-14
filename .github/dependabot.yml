@@ -1,15 +1,19 @@
+# The stack is pinned on purpose (Java 21 LTS, Spring Boot 3.3, gRPC 1.63 to match the starter).
+# Major upgrades are done deliberately, so Dependabot only proposes minor and patch updates.
 version: 2
 updates:
   - package-ecosystem: gradle
     directory: "/"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: weekly
-  - package-ecosystem: docker
-    directory: "/"
-    schedule:
-      interval: weekly
+      interval: monthly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
