@@ -2,6 +2,7 @@ package com.asmipahwa.leaderboard.grpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.asmipahwa.leaderboard.error.ConflictException;
 import com.asmipahwa.leaderboard.error.InvalidRequestException;
 import com.asmipahwa.leaderboard.error.NotFoundException;
 import com.asmipahwa.leaderboard.error.UnavailableException;
@@ -33,6 +34,12 @@ class GrpcExceptionAdviceTest {
     assertThat(status.getDescription()).doesNotContain("6379");
     assertThat(advice.unavailable(new UnavailableException("rebuilding")).getCode())
         .isEqualTo(Status.Code.UNAVAILABLE);
+  }
+
+  @Test
+  void exhaustedLockRetriesAreAborted() {
+    assertThat(advice.aborted(new ConflictException("busy", null)).getCode())
+        .isEqualTo(Status.Code.ABORTED);
   }
 
   @Test

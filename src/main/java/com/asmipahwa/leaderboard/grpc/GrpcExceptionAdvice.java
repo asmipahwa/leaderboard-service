@@ -1,5 +1,6 @@
 package com.asmipahwa.leaderboard.grpc;
 
+import com.asmipahwa.leaderboard.error.ConflictException;
 import com.asmipahwa.leaderboard.error.InvalidRequestException;
 import com.asmipahwa.leaderboard.error.NotFoundException;
 import com.asmipahwa.leaderboard.error.UnavailableException;
@@ -33,6 +34,11 @@ public class GrpcExceptionAdvice {
   @GrpcExceptionHandler(NotFoundException.class)
   public Status notFound(NotFoundException e) {
     return Status.NOT_FOUND.withDescription(e.getMessage());
+  }
+
+  @GrpcExceptionHandler(ConflictException.class)
+  public Status aborted(ConflictException e) {
+    return Status.ABORTED.withDescription(e.getMessage());
   }
 
   @GrpcExceptionHandler({
