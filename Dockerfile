@@ -1,5 +1,5 @@
 # ---- Build stage: compile with the Gradle wrapper and split the jar into layers ----
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:24-jdk AS build
 WORKDIR /workspace
 COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle gradle
@@ -10,7 +10,7 @@ RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon -q bootJar -x 
 RUN java -Djarmode=layertools -jar build/libs/app.jar extract --destination extracted
 
 # ---- Runtime stage: small JRE image, non-root user, layered jar ----
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 # Least-frequently-changing layers first, so a code change only rebuilds the last layer.
