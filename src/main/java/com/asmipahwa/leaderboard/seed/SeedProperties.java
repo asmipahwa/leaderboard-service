@@ -12,6 +12,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param avgFriends average friends per player
  * @param randomSeed fixed seed so every run produces the same data
  * @param reset wipe existing data first instead of skipping when data already exists
+ * @param exitWhenDone stop the JVM after seeding, so a Kubernetes Job / compose run completes
+ *     (scheduled-task threads would otherwise keep it alive)
  */
 @ConfigurationProperties("seed")
 public record SeedProperties(
@@ -19,4 +21,5 @@ public record SeedProperties(
     @DefaultValue("500000") int events,
     @DefaultValue("10") int avgFriends,
     @DefaultValue("42") long randomSeed,
-    @DefaultValue("false") boolean reset) {}
+    @DefaultValue("false") boolean reset,
+    @DefaultValue("true") boolean exitWhenDone) {}

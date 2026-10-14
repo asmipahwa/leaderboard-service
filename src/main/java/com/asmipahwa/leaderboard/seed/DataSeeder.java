@@ -21,6 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -70,18 +72,31 @@ public class DataSeeder implements ApplicationRunner {
   private final SeedProperties props;
   private final PeriodKeyResolver periods;
   private final Clock clock;
+  private final ConfigurableApplicationContext context;
 
   public DataSeeder(
-      DataSource dataSource, SeedProperties props, PeriodKeyResolver periods, Clock clock) {
+      DataSource dataSource,
+      SeedProperties props,
+      PeriodKeyResolver periods,
+      Clock clock,
+      ConfigurableApplicationContext context) {
     this.dataSource = dataSource;
     this.jdbc = new JdbcTemplate(dataSource);
     this.props = props;
     this.periods = periods;
     this.clock = clock;
+    this.context = context;
   }
 
   @Override
   public void run(ApplicationArguments args) throws Exception {
+    seedIfNeeded();
+    if (props.exitWhenDone()) {
+      System.exit(SpringApplication.exit(context, () -> 0));
+    }
+  }
+
+  private void seedIfNeeded() throws Exception {
     Integer existingGames = jdbc.queryForObject("SELECT count(*) FROM games", Integer.class);
     if (existingGames != null && existingGames > 0) {
       if (!props.reset()) {
