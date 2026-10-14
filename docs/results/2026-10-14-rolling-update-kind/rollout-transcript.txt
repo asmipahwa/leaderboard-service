@@ -1,0 +1,86 @@
+[13:24:08] Rolling update demo: 50 req/s for 180s against localhost:30090 (gRPC NodePort)
+{"rollingUpdate":{"maxSurge":1,"maxUnavailable":0},"type":"RollingUpdate"}
+NAME                        READY   STATUS    RESTARTS   AGE   IP            NODE                        NOMINATED NODE   READINESS GATES
+leaderboard-bf57f4f-fkjr8   1/1     Running   0          25m   10.244.0.17   leaderboard-control-plane   <none>           <none>
+leaderboard-bf57f4f-m2xnn   1/1     Running   0          25m   10.244.0.18   leaderboard-control-plane   <none>           <none>
+leaderboard-bf57f4f-wvqjg   1/1     Running   0          24m   10.244.0.19   leaderboard-control-plane   <none>           <none>
+[13:24:48] Steady traffic for 40s. Restarting every pod now.
+deployment.apps/leaderboard restarted
+[13:24:48] EVENT      NAME                          READY   STATUS              RESTARTS   AGE
+[13:24:48] ADDED      leaderboard-64c55d6db-nsmbz   0/1     ContainerCreating   0          0s
+[13:24:48] ADDED      leaderboard-bf57f4f-fkjr8     1/1     Running             0          26m
+[13:24:48] ADDED      leaderboard-bf57f4f-m2xnn     1/1     Running             0          25m
+[13:24:48] Waiting for deployment "leaderboard" rollout to finish: 1 out of 3 new replicas have been updated...
+[13:24:48] ADDED      leaderboard-bf57f4f-wvqjg     1/1     Running             0          25m
+[13:24:49] MODIFIED   leaderboard-64c55d6db-nsmbz   0/1     ContainerCreating   0          1s
+[13:24:49] MODIFIED   leaderboard-64c55d6db-nsmbz   0/1     Running             0          1s
+[13:24:54] MODIFIED   leaderboard-64c55d6db-nsmbz   0/1     Running             0          6s
+[13:25:04] MODIFIED   leaderboard-64c55d6db-nsmbz   0/1     Running             0          16s
+[13:25:09] MODIFIED   leaderboard-64c55d6db-nsmbz   1/1     Running             0          21s
+[13:25:09] MODIFIED   leaderboard-bf57f4f-wvqjg     1/1     Terminating         0          26m
+[13:25:09] Waiting for deployment "leaderboard" rollout to finish: 1 out of 3 new replicas have been updated...
+[13:25:09] MODIFIED   leaderboard-bf57f4f-wvqjg     1/1     Terminating         0          26m
+[13:25:09] ADDED      leaderboard-64c55d6db-xtzst   0/1     Pending             0          0s
+[13:25:09] Waiting for deployment "leaderboard" rollout to finish: 1 out of 3 new replicas have been updated...
+[13:25:09] MODIFIED   leaderboard-64c55d6db-xtzst   0/1     Pending             0          0s
+[13:25:09] Waiting for deployment "leaderboard" rollout to finish: 2 out of 3 new replicas have been updated...
+[13:25:09] MODIFIED   leaderboard-64c55d6db-xtzst   0/1     ContainerCreating   0          0s
+[13:25:10] MODIFIED   leaderboard-64c55d6db-xtzst   0/1     ContainerCreating   0          1s
+[13:25:10] MODIFIED   leaderboard-64c55d6db-xtzst   0/1     Running             0          1s
+[13:25:15] MODIFIED   leaderboard-64c55d6db-xtzst   0/1     Running             0          6s
+[13:25:20] MODIFIED   leaderboard-bf57f4f-wvqjg     0/1     Error               0          26m
+[13:25:20] Waiting for deployment "leaderboard" rollout to finish: 2 out of 3 new replicas have been updated...
+[13:25:21] MODIFIED   leaderboard-bf57f4f-wvqjg     0/1     Error               0          26m
+[13:25:21] MODIFIED   leaderboard-bf57f4f-wvqjg     0/1     Error               0          26m
+[13:25:21] DELETED    leaderboard-bf57f4f-wvqjg     0/1     Error               0          26m
+[13:25:25] MODIFIED   leaderboard-64c55d6db-xtzst   0/1     Running             0          16s
+[13:25:25] MODIFIED   leaderboard-64c55d6db-xtzst   1/1     Running             0          16s
+[13:25:25] MODIFIED   leaderboard-bf57f4f-m2xnn     1/1     Terminating         0          26m
+[13:25:25] Waiting for deployment "leaderboard" rollout to finish: 2 out of 3 new replicas have been updated...
+[13:25:25] MODIFIED   leaderboard-bf57f4f-m2xnn     1/1     Terminating         0          26m
+[13:25:25] ADDED      leaderboard-64c55d6db-2zmv5   0/1     Pending             0          0s
+[13:25:25] MODIFIED   leaderboard-64c55d6db-2zmv5   0/1     Pending             0          0s
+[13:25:25] Waiting for deployment "leaderboard" rollout to finish: 2 out of 3 new replicas have been updated...
+[13:25:25] Waiting for deployment "leaderboard" rollout to finish: 1 old replicas are pending termination...
+[13:25:25] MODIFIED   leaderboard-64c55d6db-2zmv5   0/1     ContainerCreating   0          0s
+[13:25:25] MODIFIED   leaderboard-64c55d6db-2zmv5   0/1     ContainerCreating   0          0s
+[13:25:25] MODIFIED   leaderboard-64c55d6db-2zmv5   0/1     Running             0          0s
+[13:25:30] MODIFIED   leaderboard-64c55d6db-2zmv5   0/1     Running             0          5s
+[13:25:36] MODIFIED   leaderboard-bf57f4f-m2xnn     0/1     Error               0          26m
+[13:25:36] Waiting for deployment "leaderboard" rollout to finish: 1 old replicas are pending termination...
+[13:25:36] MODIFIED   leaderboard-bf57f4f-m2xnn     0/1     Error               0          26m
+[13:25:36] DELETED    leaderboard-bf57f4f-m2xnn     0/1     Error               0          26m
+[13:25:40] MODIFIED   leaderboard-64c55d6db-2zmv5   0/1     Running             0          15s
+[13:25:40] MODIFIED   leaderboard-64c55d6db-2zmv5   1/1     Running             0          15s
+[13:25:40] MODIFIED   leaderboard-bf57f4f-fkjr8     1/1     Terminating         0          27m
+[13:25:40] Waiting for deployment "leaderboard" rollout to finish: 1 old replicas are pending termination...
+[13:25:40] MODIFIED   leaderboard-bf57f4f-fkjr8     1/1     Terminating         0          27m
+[13:25:40] deployment "leaderboard" successfully rolled out
+[13:25:40] Rollout finished. Pods now:
+NAME                          READY   STATUS        RESTARTS   AGE   IP            NODE                        NOMINATED NODE   READINESS GATES
+leaderboard-64c55d6db-2zmv5   1/1     Running       0          16s   10.244.0.25   leaderboard-control-plane   <none>           <none>
+leaderboard-64c55d6db-nsmbz   1/1     Running       0          53s   10.244.0.23   leaderboard-control-plane   <none>           <none>
+leaderboard-64c55d6db-xtzst   1/1     Running       0          32s   10.244.0.24   leaderboard-control-plane   <none>           <none>
+leaderboard-bf57f4f-fkjr8     1/1     Terminating   0          27m   10.244.0.17   leaderboard-control-plane   <none>           <none>
+[13:25:41] Waiting for Gatling to finish...
+---- Global Information --------------------------------------------------------
+> request count                                       9000 (OK=9000   KO=0     )
+> min response time                                      1 (OK=1      KO=-     )
+> max response time                                   1271 (OK=1271   KO=-     )
+> mean response time                                     9 (OK=9      KO=-     )
+> std deviation                                         46 (OK=46     KO=-     )
+> response time 50th percentile                          3 (OK=3      KO=-     )
+> response time 75th percentile                          5 (OK=5      KO=-     )
+> response time 95th percentile                         15 (OK=15     KO=-     )
+> response time 99th percentile                        137 (OK=137    KO=-     )
+> mean requests/sec                                     50 (OK=50     KO=-     )
+---- Response Time Distribution ------------------------------------------------
+> t < 800 ms                                          8991 (100%)
+> 800 ms <= t < 1200 ms                                  8 (  0%)
+> t >= 1200 ms                                           1 (  0%)
+> failed                                                 0 (  0%)
+================================================================================
+Please open the following file: file:///Users/asmipahwa/.superset/sessions/zircon-feverfew-ca27a28b/load-test/build/reports/gatling/rollingupdatesimulation-20261014132414334/index.html
+Global: count of failed events is 0.0 : true
+[13:27:15] Gatling exit status: 0 (0 = zero failed requests)
+[13:27:15] Transcript: load-test/build/evidence/rollout-20261014T132408Z.txt

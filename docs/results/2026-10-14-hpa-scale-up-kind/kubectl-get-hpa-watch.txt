@@ -1,0 +1,15 @@
+[13:37:30] NAME          REFERENCE                TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+[13:37:30] leaderboard   Deployment/leaderboard   cpu: 4%/70%   3         6         3          53m
+[13:37:42] leaderboard   Deployment/leaderboard   cpu: 5%/70%   3         6         3          53m
+[13:37:57] leaderboard   Deployment/leaderboard   cpu: 11%/70%   3         6         3          54m
+[13:38:12] leaderboard   Deployment/leaderboard   cpu: 131%/70%   3         6         3          54m
+[13:38:27] leaderboard   Deployment/leaderboard   cpu: 132%/70%   3         6         6          54m
+[13:38:42] leaderboard   Deployment/leaderboard   cpu: 138%/70%   3         6         6          54m
+[13:38:57] leaderboard   Deployment/leaderboard   cpu: 137%/70%   3         6         6          55m
+[13:39:12] leaderboard   Deployment/leaderboard   cpu: 72%/70%    3         6         6          55m
+[13:39:28] leaderboard   Deployment/leaderboard   cpu: 64%/70%    3         6         6          55m
+[13:39:43] leaderboard   Deployment/leaderboard   cpu: 45%/70%    3         6         6          55m
+[13:39:58] leaderboard   Deployment/leaderboard   cpu: 40%/70%    3         6         6          56m
+[13:40:13] leaderboard   Deployment/leaderboard   cpu: 38%/70%    3         6         6          56m
+[13:40:28] leaderboard   Deployment/leaderboard   cpu: 29%/70%    3         6         6          56m
+[13:40:43] leaderboard   Deployment/leaderboard   cpu: 30%/70%    3         6         6          56m
