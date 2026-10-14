@@ -3,10 +3,12 @@ package com.asmipahwa.leaderboard.service;
 import com.asmipahwa.leaderboard.cache.BoardKey;
 import com.asmipahwa.leaderboard.domain.Leaderboard;
 import com.asmipahwa.leaderboard.domain.LeaderboardId;
+import com.asmipahwa.leaderboard.error.InvalidRequestException;
 import com.asmipahwa.leaderboard.error.NotFoundException;
 import com.asmipahwa.leaderboard.repository.LeaderboardRepository;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,6 +20,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class LeaderboardRegistry {
+
+  private static final Pattern DAILY_KEY = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
+  private static final Pattern WEEKLY_KEY = Pattern.compile("\\d{4}-W\\d{2}");
 
   private final LeaderboardRepository repository;
   private final PeriodKeyResolver periods;
@@ -53,7 +58,23 @@ public class LeaderboardRegistry {
     String period =
         periodKey == null || periodKey.isBlank()
             ? periods.current(board.getResetPeriod())
-            : periodKey;
+            : checkPeriodFormat(board, periodKey);
     return new ResolvedBoard(board, new BoardKey(gameId, leaderboardId, period));
+  }
+
+  /** Rejects keys that can't belong to this board, e.g. "2026-W42" on a daily board. */
+  private static String checkPeriodFormat(Leaderboard board, String periodKey) {
+    boolean valid =
+        switch (board.getResetPeriod()) {
+          case NONE -> PeriodKeyResolver.ALL_TIME.equals(periodKey);
+          case DAILY -> DAILY_KEY.matcher(periodKey).matches();
+          case WEEKLY -> WEEKLY_KEY.matcher(periodKey).matches();
+          case SEASON -> true;
+        };
+    if (!valid) {
+      throw new InvalidRequestException(
+          "period_key " + periodKey + " does not match a " + board.getResetPeriod() + " board");
+    }
+    return periodKey;
   }
 }

@@ -1,5 +1,6 @@
 package com.asmipahwa.leaderboard.rest;
 
+import com.asmipahwa.leaderboard.error.ConflictException;
 import com.asmipahwa.leaderboard.error.InvalidRequestException;
 import com.asmipahwa.leaderboard.error.NotFoundException;
 import com.asmipahwa.leaderboard.error.UnavailableException;
@@ -32,6 +33,11 @@ public class RestExceptionHandler {
   @ExceptionHandler(NotFoundException.class)
   public ProblemDetail notFound(NotFoundException e) {
     return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+  }
+
+  @ExceptionHandler(ConflictException.class)
+  public ProblemDetail conflict(ConflictException e) {
+    return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
   }
 
   @ExceptionHandler({

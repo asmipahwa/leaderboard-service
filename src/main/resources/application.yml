@@ -22,6 +22,9 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      # Fail fast: a hung Redis should trip the circuit breaker, not hold threads for 60 s.
+      timeout: 500ms
+      connect-timeout: 500ms
   lifecycle:
     timeout-per-shutdown-phase: 20s
 
@@ -58,6 +61,15 @@ leaderboard:
     push-interval-ms: 250
   grpc:
     default-deadline-ms: 5000
+  redis:
+    breaker:
+      failure-rate-percent: 50
+      minimum-calls: 10
+      open-seconds: 5
+  reconciler:
+    enabled: true
+    interval-ms: 60000
+    sample-size: 200
 
 springdoc:
   swagger-ui:

@@ -103,6 +103,110 @@ public class ScoreQueryDao {
         limit);
   }
 
+  /** A player's best score on a board period, if they have one. */
+  public java.util.Optional<Long> bestScore(
+      String gameId, String leaderboardId, String periodKey, UUID playerId) {
+    List<Long> rows =
+        jdbc.queryForList(
+            "SELECT best_score FROM scores WHERE game_id = ? AND leaderboard_id = ?"
+                + " AND period_key = ? AND player_id = ?",
+            Long.class,
+            gameId,
+            leaderboardId,
+            periodKey,
+            playerId);
+    return rows.stream().findFirst();
+  }
+
+  /** Number of players with a strictly better score: the competition rank is this + 1. */
+  public long countBetter(
+      String gameId, String leaderboardId, String periodKey, SortOrder order, long score) {
+    String comparison = order == SortOrder.DESC ? ">" : "<";
+    Long count =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM scores WHERE game_id = ? AND leaderboard_id = ?"
+                + " AND period_key = ? AND best_score "
+                + comparison
+                + " ?",
+            Long.class,
+            gameId,
+            leaderboardId,
+            periodKey,
+            score);
+    return count == null ? 0 : count;
+  }
+
+  /**
+   * 0-based position of a player in the board's display order (best first, ties by player id
+   * descending): everyone better, plus tied players with a larger id.
+   */
+  public long position(
+      String gameId,
+      String leaderboardId,
+      String periodKey,
+      SortOrder order,
+      UUID playerId,
+      long score) {
+    Long tiedAhead =
+        jdbc.queryForObject(
+            "SELECT count(*) FROM scores WHERE game_id = ? AND leaderboard_id = ?"
+                + " AND period_key = ? AND best_score = ? AND player_id > ?",
+            Long.class,
+            gameId,
+            leaderboardId,
+            periodKey,
+            score,
+            playerId);
+    return countBetter(gameId, leaderboardId, periodKey, order, score)
+        + (tiedAhead == null ? 0 : tiedAhead);
+  }
+
+  /** Best scores of specific players (used by the friends board fallback). */
+  public List<ScoreRow> scoresOf(
+      String gameId, String leaderboardId, String periodKey, List<UUID> playerIds) {
+    if (playerIds.isEmpty()) {
+      return List.of();
+    }
+    return jdbc.query(
+        "SELECT s.player_id, p.display_name, s.best_score FROM scores s"
+            + " JOIN players p ON p.player_id = s.player_id"
+            + " WHERE s.game_id = ? AND s.leaderboard_id = ? AND s.period_key = ?"
+            + " AND s.player_id = ANY (?)",
+        (rs, i) ->
+            new ScoreRow(
+                rs.getObject("player_id", UUID.class),
+                rs.getString("display_name"),
+                rs.getLong("best_score")),
+        gameId,
+        leaderboardId,
+        periodKey,
+        playerIds.toArray(UUID[]::new));
+  }
+
+  /**
+   * A cheap pseudo-random sample for the reconciler: up to {@code limit} rows starting at a random
+   * player id. It walks the primary-key index instead of scanning the board like {@code ORDER BY
+   * random()} would.
+   */
+  public List<ScoreRow> sample(
+      String gameId, String leaderboardId, String periodKey, UUID from, int limit) {
+    return jdbc.query(
+        "SELECT s.player_id, p.display_name, s.best_score FROM scores s"
+            + " JOIN players p ON p.player_id = s.player_id"
+            + " WHERE s.game_id = ? AND s.leaderboard_id = ? AND s.period_key = ?"
+            + " AND s.player_id >= ? ORDER BY s.player_id LIMIT ?",
+        (rs, i) ->
+            new ScoreRow(
+                rs.getObject("player_id", UUID.class),
+                rs.getString("display_name"),
+                rs.getLong("best_score")),
+        gameId,
+        leaderboardId,
+        periodKey,
+        from,
+        limit);
+  }
+
   public long count(String gameId, String leaderboardId, String periodKey) {
     Long count =
         jdbc.queryForObject(

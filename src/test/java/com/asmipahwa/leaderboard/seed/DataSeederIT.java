@@ -30,6 +30,7 @@ class DataSeederIT extends IntegrationTestSupport {
     assertThat(count("SELECT count(*) FROM players")).isEqualTo(500);
     assertThat(count("SELECT count(*) FROM score_events")).isEqualTo(3000);
     assertThat(count("SELECT count(*) FROM friendships")).isGreaterThan(500);
+    assertThat(count("SELECT count(*) FROM achievements")).isEqualTo(9);
   }
 
   @Test

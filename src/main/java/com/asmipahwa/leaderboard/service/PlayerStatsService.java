@@ -45,16 +45,19 @@ public class PlayerStatsService {
   private final PlayerStatsRepository stats;
   private final ScoreHistoryDao history;
   private final PlayerNameCache names;
+  private final AchievementService achievements;
 
   public PlayerStatsService(
       GameRepository games,
       PlayerStatsRepository stats,
       ScoreHistoryDao history,
-      PlayerNameCache names) {
+      PlayerNameCache names,
+      AchievementService achievements) {
     this.games = games;
     this.stats = stats;
     this.history = history;
     this.names = names;
+    this.achievements = achievements;
   }
 
   public StatsView stats(String gameId, String playerId) {
@@ -73,7 +76,7 @@ public class PlayerStatsService {
         row.getWins(),
         winRate,
         row.getLastPlayedAt(),
-        List.of());
+        achievements.achievementsOf(game, player));
   }
 
   public HistoryPage history(String gameId, String playerId, int pageSize, String pageToken) {

@@ -1,6 +1,7 @@
 package com.asmipahwa.leaderboard.cache;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,10 +24,13 @@ public class PlayerNameCache {
 
   private final StringRedisTemplate redis;
   private final NamedParameterJdbcTemplate jdbc;
+  private final RedisGuard guard;
 
-  public PlayerNameCache(StringRedisTemplate redis, NamedParameterJdbcTemplate jdbc) {
+  public PlayerNameCache(
+      StringRedisTemplate redis, NamedParameterJdbcTemplate jdbc, RedisGuard guard) {
     this.redis = redis;
     this.jdbc = jdbc;
+    this.guard = guard;
   }
 
   /** Names for the given ids. Ids that don't exist in Postgres either are left out. */
@@ -34,7 +38,11 @@ public class PlayerNameCache {
     if (playerIds.isEmpty()) {
       return Map.of();
     }
-    List<Object> values = redis.opsForHash().multiGet(KEY, new ArrayList<Object>(playerIds));
+    List<Object> values =
+        guard.call(
+            "names_get",
+            () -> redis.opsForHash().multiGet(KEY, new ArrayList<Object>(playerIds)),
+            () -> Collections.nCopies(playerIds.size(), null));
     Map<String, String> names = new HashMap<>(playerIds.size() * 2);
     List<UUID> missing = new ArrayList<>();
     for (int i = 0; i < playerIds.size(); i++) {
@@ -60,7 +68,7 @@ public class PlayerNameCache {
 
   public void putAll(Map<String, String> names) {
     if (!names.isEmpty()) {
-      redis.opsForHash().putAll(KEY, names);
+      guard.run("names_put", () -> redis.opsForHash().putAll(KEY, names));
     }
   }
 

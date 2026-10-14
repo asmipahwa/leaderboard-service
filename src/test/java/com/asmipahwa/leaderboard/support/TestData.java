@@ -36,6 +36,20 @@ public final class TestData {
     return new Board(gameId, "board");
   }
 
+  /** Adds another board to an existing game. */
+  public static Board addBoard(
+      JdbcTemplate jdbc, String gameId, String leaderboardId, SortOrder order, ResetPeriod period) {
+    jdbc.update(
+        "INSERT INTO leaderboards (game_id, leaderboard_id, name, sort_order, reset_period)"
+            + " VALUES (?, ?, ?, ?, ?)",
+        gameId,
+        leaderboardId,
+        leaderboardId,
+        order.name(),
+        period.name());
+    return new Board(gameId, leaderboardId);
+  }
+
   public static List<UUID> players(JdbcTemplate jdbc, int count) {
     List<UUID> ids = new ArrayList<>(count);
     for (int i = 0; i < count; i++) {

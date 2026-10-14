@@ -90,8 +90,8 @@ public class DataSeeder implements ApplicationRunner {
         return;
       }
       jdbc.execute(
-          "TRUNCATE player_stats, score_events, scores, friendships, players, leaderboards, games"
-              + " CASCADE");
+          "TRUNCATE player_achievements, achievements, player_stats, score_events, scores,"
+              + " friendships, players, leaderboards, games CASCADE");
     }
     long started = System.nanoTime();
     seed();
@@ -130,6 +130,15 @@ public class DataSeeder implements ApplicationRunner {
           board.sortOrder().name(),
           board.period().name(),
           java.sql.Timestamp.from(now));
+    }
+    for (GameDef game : SeedCatalog.GAMES) {
+      for (Map.Entry<String, Long> achievement : SeedCatalog.ACHIEVEMENTS.entrySet()) {
+        jdbc.update(
+            "INSERT INTO achievements (game_id, name, threshold) VALUES (?, ?, ?)",
+            game.gameId(),
+            achievement.getKey(),
+            achievement.getValue());
+      }
     }
     log.info(
         "Seeded {} games, {} leaderboards", SeedCatalog.GAMES.size(), SeedCatalog.BOARDS.size());

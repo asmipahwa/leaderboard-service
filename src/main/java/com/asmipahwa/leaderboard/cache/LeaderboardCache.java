@@ -157,6 +157,33 @@ public class LeaderboardCache {
         ((Number) result.get(2)).longValue());
   }
 
+  /**
+   * Raises several members' scores in one pipelined {@code ZADD GT} (used to repair drift). GT
+   * means a value read from Postgres a moment ago can never lower a newer score.
+   */
+  public void raiseScores(BoardKey key, java.util.Map<String, Double> rankingScores) {
+    if (rankingScores.isEmpty()) {
+      return;
+    }
+    java.util.Set<org.springframework.data.redis.connection.zset.Tuple> tuples =
+        new java.util.LinkedHashSet<>();
+    rankingScores.forEach(
+        (member, score) ->
+            tuples.add(
+                new org.springframework.data.redis.connection.zset.DefaultTuple(
+                    bytes(member), score)));
+    byte[] zset = bytes(key.zsetKey());
+    executePipelined(
+        connection ->
+            connection
+                .zSetCommands()
+                .zAdd(
+                    zset,
+                    tuples,
+                    org.springframework.data.redis.connection.RedisZSetCommands.ZAddArgs.empty()
+                        .gt()));
+  }
+
   /** Formats a whole-number score without a decimal point or exponent, as Redis expects. */
   static String toArg(double rankingScore) {
     return Long.toString(Math.round(rankingScore));
