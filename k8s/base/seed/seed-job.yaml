@@ -1,0 +1,33 @@
+# One-shot data load (same image, "seed" profile). Re-running is safe: it skips when data exists.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: leaderboard-seed
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: seed
+          image: ghcr.io/asmipahwa/leaderboard-service:latest
+          envFrom:
+            - configMapRef:
+                name: leaderboard-config
+            - secretRef:
+                name: leaderboard-db
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: seed
+            - name: SEED_PLAYERS
+              value: "100000"
+            - name: SEED_EVENTS
+              value: "500000"
+          resources:
+            requests: {cpu: 500m, memory: 512Mi}
+            limits: {memory: 1Gi}

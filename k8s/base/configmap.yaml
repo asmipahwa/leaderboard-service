@@ -1,0 +1,15 @@
+# Non-secret settings, injected into the pods as environment variables.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: leaderboard-config
+data:
+  DB_URL: jdbc:postgresql://postgres:5432/leaderboard
+  DB_POOL_SIZE: "20"
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  SPRING_PROFILES_ACTIVE: json
+  LEADERBOARD_SEASON: S1
+  # Production-style sampling: trace 10% of requests (see docs/PERFORMANCE.md for the cost).
+  TRACING_SAMPLING: "0.1"
+  JAVA_OPTS: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"

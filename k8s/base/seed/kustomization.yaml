@@ -1,0 +1,6 @@
+# Separate from the main base so the one-shot Job isn't re-applied on every deploy.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: leaderboard
+resources:
+  - seed-job.yaml

@@ -1,0 +1,18 @@
+# The seed Job, using the locally built image: kubectl apply -k k8s/overlays/local/seed
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: leaderboard
+resources:
+  - ../../../base/seed
+images:
+  - name: ghcr.io/asmipahwa/leaderboard-service
+    newName: leaderboard-service
+    newTag: local
+patches:
+  - target:
+      kind: Job
+      name: leaderboard-seed
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
