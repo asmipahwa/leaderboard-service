@@ -2,11 +2,13 @@ package com.asmipahwa.leaderboard.service;
 
 import com.asmipahwa.leaderboard.cache.LeaderboardCache;
 import com.asmipahwa.leaderboard.cache.LeaderboardCache.Member;
+import com.asmipahwa.leaderboard.cache.LeaderboardCache.Neighborhood;
 import com.asmipahwa.leaderboard.cache.LeaderboardCache.Page;
 import com.asmipahwa.leaderboard.cache.LeaderboardCache.State;
 import com.asmipahwa.leaderboard.cache.LeaderboardRebuilder;
 import com.asmipahwa.leaderboard.cache.PlayerNameCache;
 import com.asmipahwa.leaderboard.cache.RedisGuard;
+import com.asmipahwa.leaderboard.debug.FaultInjector;
 import com.asmipahwa.leaderboard.domain.SortOrder;
 import com.asmipahwa.leaderboard.error.NotFoundException;
 import com.asmipahwa.leaderboard.error.UnavailableException;
@@ -44,6 +46,7 @@ public class LeaderboardQueryService {
   private final FriendsService friends;
   private final ScoreQueryDao scoreQueries;
   private final RedisGuard guard;
+  private final FaultInjector faults;
   private final Clock clock;
 
   public LeaderboardQueryService(
@@ -54,6 +57,7 @@ public class LeaderboardQueryService {
       FriendsService friends,
       ScoreQueryDao scoreQueries,
       RedisGuard guard,
+      FaultInjector faults,
       Clock clock) {
     this.registry = registry;
     this.cache = cache;
@@ -62,6 +66,7 @@ public class LeaderboardQueryService {
     this.friends = friends;
     this.scoreQueries = scoreQueries;
     this.guard = guard;
+    this.faults = faults;
     this.clock = clock;
   }
 
@@ -84,12 +89,25 @@ public class LeaderboardQueryService {
       }
       page = cache.page(board.key(), start, start + size - 1L);
     }
-    List<Member> members = page.members();
-    long firstRank =
-        start == 0 || members.isEmpty()
-            ? 1
-            : cache.rankOf(board.key(), members.get(0).rankingScore());
-    return new TopNResult(rank(board, members, start, firstRank), page.total(), clock.instant());
+    SortOrder order = board.sortOrder();
+    List<Scored> scored = new ArrayList<>(page.members().size());
+    List<String> missingNames = new ArrayList<>();
+    for (Member member : page.members()) {
+      scored.add(new Scored(member.playerId(), order.fromRankingScore(member.rankingScore())));
+      if (!page.names().containsKey(member.playerId())) {
+        missingNames.add(member.playerId());
+      }
+    }
+    Map<String, String> displayNames = page.names();
+    if (!missingNames.isEmpty()) {
+      // Rare: a name fell out of the cache. Load just those from Postgres (and re-cache them).
+      displayNames = new java.util.HashMap<>(page.names());
+      displayNames.putAll(names.namesOf(missingNames));
+    }
+    return new TopNResult(
+        Ranking.assign(scored, start, page.firstRank(), displayNames),
+        page.total(),
+        clock.instant());
   }
 
   /** The player's rank, the {@code around} players above and below, and their percentile. */
@@ -105,24 +123,35 @@ public class LeaderboardQueryService {
   }
 
   private PlayerRankResult playerRankFromRedis(ResolvedBoard board, String player, int window) {
-    requireReady(board);
-    double myScore =
-        cache
-            .rankingScore(board.key(), player)
-            .orElseThrow(() -> new NotFoundException("Player has no score on this leaderboard"));
-    long myRank = cache.rankOf(board.key(), myScore);
-    long position = cache.position(board.key(), player).orElse(myRank - 1);
-    long total = cache.size(board.key());
-
-    long start = Math.max(0, position - window);
-    List<Member> members = cache.range(board.key(), start, position + window);
-    long firstRank =
-        members.isEmpty() || members.get(0).playerId().equals(player)
-            ? myRank
-            : cache.rankOf(board.key(), members.get(0).rankingScore());
+    faults.maybeSlowDownRankQuery();
+    Neighborhood around = cache.neighborhood(board.key(), player, window);
+    if (around.state() != State.READY) {
+      requireReady(board);
+      around = cache.neighborhood(board.key(), player, window);
+    }
+    if (!around.ranked()) {
+      throw new NotFoundException("Player has no score on this leaderboard");
+    }
+    SortOrder order = board.sortOrder();
+    List<Scored> scored = new ArrayList<>(around.members().size());
+    List<String> missingNames = new ArrayList<>();
+    for (Member member : around.members()) {
+      scored.add(new Scored(member.playerId(), order.fromRankingScore(member.rankingScore())));
+      if (!around.names().containsKey(member.playerId())) {
+        missingNames.add(member.playerId());
+      }
+    }
+    Map<String, String> displayNames = around.names();
+    if (!missingNames.isEmpty()) {
+      displayNames = new java.util.HashMap<>(around.names());
+      displayNames.putAll(names.namesOf(missingNames));
+    }
     RankedEntry fallbackSelf =
-        new RankedEntry(myRank, player, null, board.sortOrder().fromRankingScore(myScore));
-    return split(rank(board, members, start, firstRank), fallbackSelf, total);
+        new RankedEntry(around.rank(), player, null, order.fromRankingScore(around.rankingScore()));
+    return split(
+        Ranking.assign(scored, around.windowStart(), around.firstRank(), displayNames),
+        fallbackSelf,
+        around.total());
   }
 
   /** Splits a ranked window into the player, the entries above and the entries below. */

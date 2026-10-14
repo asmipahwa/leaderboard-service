@@ -6,6 +6,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.micrometer.tagged.TaggedCircuitBreakerMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -35,11 +36,15 @@ public class RedisGuard {
   public RedisGuard(
       MeterRegistry meters,
       @Value("${leaderboard.redis.breaker.failure-rate-percent:50}") float failureRate,
-      @Value("${leaderboard.redis.breaker.minimum-calls:10}") int minimumCalls,
+      @Value("${leaderboard.redis.breaker.minimum-calls:100}") int minimumCalls,
       @Value("${leaderboard.redis.breaker.open-seconds:5}") long openSeconds) {
+    // Time-based window: judge Redis on the last 10 seconds of calls, and only once there have
+    // been enough of them. A count-based window of a few dozen calls would trip on a handful of
+    // slow calls during a burst of thousands.
     CircuitBreakerConfig config =
         CircuitBreakerConfig.custom()
-            .slidingWindowSize(Math.max(20, minimumCalls))
+            .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.TIME_BASED)
+            .slidingWindowSize(10)
             .minimumNumberOfCalls(minimumCalls)
             .failureRateThreshold(failureRate)
             .waitDurationInOpenState(Duration.ofSeconds(openSeconds))
@@ -63,12 +68,20 @@ public class RedisGuard {
    * @param operation short name for the fallback metric, e.g. {@code top_n}
    */
   public <T> T call(String operation, Supplier<T> redisCall, Supplier<T> fallback) {
+    Timer.Sample sample = Timer.start(meters);
     try {
       return breaker.executeSupplier(redisCall);
     } catch (CallNotPermittedException | DataAccessException e) {
       meters.counter("leaderboard.redis.fallback", "operation", operation).increment();
       log.debug("Redis fallback for {}: {}", operation, e.toString());
       return fallback.get();
+    } finally {
+      sample.stop(
+          Timer.builder("leaderboard.redis")
+              .description("Time spent in Redis-backed operations (including any fallback)")
+              .tag("operation", operation)
+              .publishPercentileHistogram()
+              .register(meters));
     }
   }
 

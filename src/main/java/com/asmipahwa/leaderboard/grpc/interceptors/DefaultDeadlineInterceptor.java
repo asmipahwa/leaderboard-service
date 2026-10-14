@@ -36,7 +36,7 @@ public class DefaultDeadlineInterceptor implements ServerInterceptor {
   private final long timeoutMillis;
 
   public DefaultDeadlineInterceptor(
-      @Value("${leaderboard.grpc.default-deadline-ms:5000}") long timeoutMillis) {
+      @Value("${leaderboard.grpc.default-deadline-ms:10000}") long timeoutMillis) {
     this.timeoutMillis = timeoutMillis;
   }
 

@@ -1,0 +1,8 @@
+<testsuite name="com.asmipahwa.leaderboard.load.ReadHeavySimulation" tests="2" errors="0" failures="0" time="0">
+<testcase name="GetTopN(100): 95th percentile of response time is less than 10.0" status="true" time="0">
+  <system-out>GetTopN(100): 95th percentile of response time is less than 10.0</system-out>
+</testcase>
+<testcase name="Global: percentage of failed events is less than 0.1" status="true" time="0">
+  <system-out>Global: percentage of failed events is less than 0.1</system-out>
+</testcase>
+</testsuite>

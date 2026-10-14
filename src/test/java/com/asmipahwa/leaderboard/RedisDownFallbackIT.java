@@ -19,8 +19,12 @@ import com.asmipahwa.leaderboard.support.TestData;
 import com.asmipahwa.leaderboard.support.TestData.Board;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -52,7 +56,7 @@ class RedisDownFallbackIT extends IntegrationTestSupport {
   }
 
   @Test
-  void leaderboardStaysAvailableWhileRedisIsDown() {
+  void leaderboardStaysAvailableWhileRedisIsDown() throws Exception {
     Board board = TestData.board(jdbc, SortOrder.DESC, ResetPeriod.NONE);
     List<UUID> players = TestData.players(jdbc, 30);
     TestData.befriend(jdbc, players.get(0), players.get(1));
@@ -68,14 +72,24 @@ class RedisDownFallbackIT extends IntegrationTestSupport {
     GetTopNResponse topBefore = stub.getTopN(top);
     GetPlayerRankResponse rankBefore = stub.getPlayerRank(rank);
     double fallbacksBefore = fallbacks();
+    // Start from a clean breaker so successful calls from earlier tests don't dilute the window.
+    guard.reset();
 
     pauseRedis();
     try {
-      for (int i = 0; i < 15; i++) {
-        GetTopNResponse fromPostgres = stub.getTopN(top);
-        assertThat(fromPostgres.getEntriesList()).isEqualTo(topBefore.getEntriesList());
+      // The breaker judges the last 10 s of Redis calls and needs at least 100 of them.
+      List<Future<GetTopNResponse>> reads = new ArrayList<>();
+      try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        for (int i = 0; i < 400; i++) {
+          reads.add(executor.submit(() -> stub.getTopN(top)));
+        }
+        for (Future<GetTopNResponse> read : reads) {
+          assertThat(read.get().getEntriesList()).isEqualTo(topBefore.getEntriesList());
+        }
       }
-      assertThat(guard.state()).isEqualTo(CircuitBreaker.State.OPEN);
+      // OPEN, or already HALF_OPEN (probing again) if the 5 s cool-down elapsed: either way it
+      // tripped instead of letting every request wait on a dead Redis.
+      assertThat(guard.state()).isIn(CircuitBreaker.State.OPEN, CircuitBreaker.State.HALF_OPEN);
       assertThat(stub.getPlayerRank(rank)).isEqualTo(rankBefore);
       assertThat(
               stub.getFriendsLeaderboard(

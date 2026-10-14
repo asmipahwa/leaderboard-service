@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Local runs: readable text lines that still show the trace id.
+  Profile "json" (docker-compose, Kubernetes): one JSON object per line, with traceId, spanId,
+  rpc, gameId and playerId from the MDC, ready for Loki/Elasticsearch/CloudWatch.
+-->
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+  <springProfile name="!json">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>%d{HH:mm:ss.SSS} %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n</pattern>
+      </encoder>
+    </appender>
+  </springProfile>
+
+  <springProfile name="json">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <includeMdcKeyName>traceId</includeMdcKeyName>
+        <includeMdcKeyName>spanId</includeMdcKeyName>
+        <includeMdcKeyName>rpc</includeMdcKeyName>
+        <includeMdcKeyName>gameId</includeMdcKeyName>
+        <includeMdcKeyName>playerId</includeMdcKeyName>
+        <customFields>{"service":"leaderboard-service"}</customFields>
+      </encoder>
+    </appender>
+  </springProfile>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

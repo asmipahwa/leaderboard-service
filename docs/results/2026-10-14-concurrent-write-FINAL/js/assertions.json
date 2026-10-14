@@ -1,0 +1,18 @@
+{
+  "simulation": "com.asmipahwa.leaderboard.load.ConcurrentWriteSimulation",
+  "simulationId": "concurrentwritesimulation-20261014114923047",
+  "start": 1791978563102,
+  "description": "",
+  "scenarios": ["Matches ending at the same time"],
+  "assertions": [
+{
+  "path": "Global",
+  "target": "count of failed events",
+  "condition": "is",
+  "expectedValues": [0.0],
+  "result": true,
+  "message": "Global: count of failed events is 0.0",
+  "actualValue": [0.0]
+}
+  ]
+}

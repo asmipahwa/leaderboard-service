@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Leaderboard</title>
+  <!--
+    Live demo for the Game Stats & Leaderboard Service.
+    Connects to /ws/leaderboards/{game}/{board} and animates rank changes as scores arrive.
+    Run `make demo-bot` to submit random scores and watch the board move.
+    Pick a board with ?game=fc-mobile&board=all-time-high-score
+  -->
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --panel: #121829;
+      --row: #182036;
+      --row-hi: #1f2944;
+      --text: #e8ecf8;
+      --muted: #8a93ad;
+      --accent: #4cc2ff;
+      --gold: #f5c542;
+      --silver: #c9d1e3;
+      --bronze: #d79a63;
+      --up: #3ddc84;
+      --down: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(1200px 600px at 50% -200px, #1a2550 0%, var(--bg) 60%);
+      color: var(--text);
+      font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+    main { width: 100%; max-width: 640px; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    h1 { font-size: 22px; margin: 0; letter-spacing: 0.3px; }
+    .board { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--down); }
+    .dot.live { background: var(--up); box-shadow: 0 0 8px var(--up); }
+    .panel { margin-top: 18px; background: var(--panel); border-radius: 14px; padding: 10px; }
+    ol { list-style: none; margin: 0; padding: 0; position: relative; }
+    li {
+      display: grid;
+      grid-template-columns: 44px 1fr auto 52px;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      margin: 4px 0;
+      border-radius: 10px;
+      background: var(--row);
+      will-change: transform;
+    }
+    li.flash { animation: flash 900ms ease-out; }
+    @keyframes flash { from { background: #2b3f75; } to { background: var(--row); } }
+    .rank {
+      font-weight: 700; font-variant-numeric: tabular-nums; text-align: center;
+      border-radius: 8px; padding: 4px 0; background: #222b47;
+    }
+    li:nth-child(1) .rank { background: var(--gold); color: #1a1400; }
+    li:nth-child(2) .rank { background: var(--silver); color: #111; }
+    li:nth-child(3) .rank { background: var(--bronze); color: #1d0f00; }
+    .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .score { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+    .delta { font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+    .delta.up { color: var(--up); }
+    .delta.down { color: var(--down); }
+    footer { margin-top: 14px; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    footer a { color: var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Live Leaderboard</h1>
+      <div class="board" id="board"></div>
+    </div>
+    <div class="status"><span class="dot" id="dot"></span><span id="status">connecting…</span></div>
+  </header>
+  <div class="panel"><ol id="list"></ol></div>
+  <footer>
+    <span id="meta">waiting for data…</span>
+    <span>
+      <a href="/swagger-ui.html">REST API</a> ·
+      <a href="http://localhost:3000" target="_blank" rel="noopener">Grafana</a> ·
+      <a href="http://localhost:16686" target="_blank" rel="noopener">Jaeger</a>
+    </span>
+  </footer>
+</main>
+<script>
+  const params = new URLSearchParams(location.search);
+  const game = params.get("game") || "fc-mobile";
+  const board = params.get("board") || "all-time-high-score";
+  document.getElementById("board").textContent = `${game} / ${board} · top 10`;
+
+  const list = document.getElementById("list");
+  const rows = new Map();       // playerId -> <li>
+  const lastRank = new Map();   // playerId -> rank shown before this update
+  const lastScore = new Map();
+
+  function row(playerId) {
+    let li = rows.get(playerId);
+    if (!li) {
+      li = document.createElement("li");
+      for (const cls of ["rank", "name", "score", "delta"]) {
+        const span = document.createElement("span");
+        span.className = cls;
+        li.appendChild(span);
+      }
+      rows.set(playerId, li);
+    }
+    return li;
+  }
+
+  function render(snapshot) {
+    // FLIP animation: remember where each row was, re-order, then slide from old to new spot.
+    const before = new Map([...rows].map(([id, li]) => [id, li.getBoundingClientRect().top]));
+    const seen = new Set();
+    snapshot.entries.forEach((entry, index) => {
+      const li = row(entry.playerId);
+      seen.add(entry.playerId);
+      li.querySelector(".rank").textContent = entry.rank;
+      li.querySelector(".name").textContent = entry.displayName || entry.playerId.slice(0, 8);
+      li.querySelector(".score").textContent = entry.score.toLocaleString();
+      const delta = li.querySelector(".delta");
+      const previous = lastRank.get(entry.playerId);
+      if (previous === undefined) {
+        delta.textContent = "new"; delta.className = "delta up";
+      } else if (previous > entry.rank) {
+        delta.textContent = `▲${previous - entry.rank}`; delta.className = "delta up";
+      } else if (previous < entry.rank) {
+        delta.textContent = `▼${entry.rank - previous}`; delta.className = "delta down";
+      } else {
+        delta.textContent = ""; delta.className = "delta";
+      }
+      if (lastScore.has(entry.playerId) && lastScore.get(entry.playerId) !== entry.score) {
+        li.classList.remove("flash"); void li.offsetWidth; li.classList.add("flash");
+      }
+      lastRank.set(entry.playerId, entry.rank);
+      lastScore.set(entry.playerId, entry.score);
+      if (list.children[index] !== li) list.insertBefore(li, list.children[index] || null);
+    });
+    for (const [id, li] of rows) {
+      if (!seen.has(id)) { li.remove(); rows.delete(id); lastRank.delete(id); }
+    }
+    for (const [id, li] of rows) {
+      const old = before.get(id);
+      if (old === undefined) continue;
+      const shift = old - li.getBoundingClientRect().top;
+      if (shift) {
+        li.style.transition = "none";
+        li.style.transform = `translateY(${shift}px)`;
+        requestAnimationFrame(() => {
+          li.style.transition = "transform 450ms cubic-bezier(.2,.8,.2,1)";
+          li.style.transform = "";
+        });
+      }
+    }
+    const asOf = new Date(snapshot.asOf).toLocaleTimeString();
+    document.getElementById("meta").textContent =
+      `${snapshot.totalPlayers.toLocaleString()} players · updated ${asOf}`;
+  }
+
+  function connect() {
+    const scheme = location.protocol === "https:" ? "wss" : "ws";
+    const socket = new WebSocket(`${scheme}://${location.host}/ws/leaderboards/${game}/${board}`);
+    const dot = document.getElementById("dot");
+    const status = document.getElementById("status");
+    socket.onopen = () => { dot.classList.add("live"); status.textContent = "live"; };
+    socket.onmessage = (event) => render(JSON.parse(event.data));
+    socket.onclose = () => {
+      dot.classList.remove("live");
+      status.textContent = "reconnecting…";
+      setTimeout(connect, 1500);
+    };
+  }
+  connect();
+</script>
+</body>
+</html>

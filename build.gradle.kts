@@ -29,8 +29,10 @@ val protobufVersion = "3.25.3"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("org.apache.commons:commons-pool2") // pooled Lettuce connections for pipelines
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.flywaydb:flyway-core")
@@ -45,6 +47,11 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
     implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.2.0")
     implementation("io.github.resilience4j:resilience4j-micrometer:2.2.0")
+    // Observability: traces via OpenTelemetry (exported to Jaeger), JDBC spans, JSON logs.
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+    implementation("net.ttddyy.observation:datasource-micrometer-spring-boot:1.0.5")
+    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
     compileOnly("javax.annotation:javax.annotation-api:1.3.2") // @Generated on gRPC stubs // compile scope: the seeder uses the COPY API
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
@@ -97,6 +104,11 @@ val integrationTest by tasks.registering(Test::class) {
     useJUnitPlatform()
     include("**/*IT.class")
     shouldRunAfter(tasks.test)
+    // Opt-in diagnostics, e.g. ./gradlew integrationTest -PtracePinned
+    if (project.hasProperty("tracePinned")) {
+        jvmArgs("-Djdk.tracePinnedThreads=short")
+        environment("LOGGING_LEVEL_COM_ASMIPAHWA_LEADERBOARD_CACHE_REDISGUARD", "DEBUG")
+    }
 }
 
 tasks.check {
