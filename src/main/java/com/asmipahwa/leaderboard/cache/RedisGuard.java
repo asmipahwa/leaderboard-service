@@ -36,11 +36,15 @@ public class RedisGuard {
   public RedisGuard(
       MeterRegistry meters,
       @Value("${leaderboard.redis.breaker.failure-rate-percent:50}") float failureRate,
-      @Value("${leaderboard.redis.breaker.minimum-calls:10}") int minimumCalls,
+      @Value("${leaderboard.redis.breaker.minimum-calls:100}") int minimumCalls,
       @Value("${leaderboard.redis.breaker.open-seconds:5}") long openSeconds) {
+    // Time-based window: judge Redis on the last 10 seconds of calls, and only once there have
+    // been enough of them. A count-based window of a few dozen calls would trip on a handful of
+    // slow calls during a burst of thousands.
     CircuitBreakerConfig config =
         CircuitBreakerConfig.custom()
-            .slidingWindowSize(Math.max(20, minimumCalls))
+            .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.TIME_BASED)
+            .slidingWindowSize(10)
             .minimumNumberOfCalls(minimumCalls)
             .failureRateThreshold(failureRate)
             .waitDurationInOpenState(Duration.ofSeconds(openSeconds))
