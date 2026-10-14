@@ -1,0 +1,9 @@
+.git
+.gradle
+build
+**/build
+.idea
+*.iml
+docs
+k8s
+load-test/build
