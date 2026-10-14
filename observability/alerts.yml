@@ -1,0 +1,39 @@
+# Alert rules for the leaderboard service. Each alert names the dashboard panel to look at first
+# (see docs/OBSERVABILITY.md for the debugging playbook).
+groups:
+  - name: leaderboard
+    rules:
+      - alert: LeaderboardTopNSlow
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(leaderboard_query_seconds_bucket{rpc="GetTopN"}[5m]))) > 0.05
+        for: 5m
+        labels: {severity: page}
+        annotations:
+          summary: "GetTopN p95 above 50 ms for 5 minutes"
+          runbook: "Panel 'p95 latency by RPC', then 'Redis / DB p95'. Find a slow trace in Jaeger."
+
+      - alert: LeaderboardHighErrorRate
+        expr: |
+          sum(rate(leaderboard_query_seconds_count{status!~"OK|NOT_FOUND|INVALID_ARGUMENT"}[5m]))
+            / sum(rate(leaderboard_query_seconds_count[5m])) > 0.01
+        for: 5m
+        labels: {severity: page}
+        annotations:
+          summary: "More than 1% of RPCs failing with server-side errors"
+          runbook: "Panel 'Error rate', then logs filtered by status and traceId."
+
+      - alert: LeaderboardRedisFallbackActive
+        expr: sum(rate(leaderboard_redis_fallback_total[1m])) > 0
+        for: 1m
+        labels: {severity: ticket}
+        annotations:
+          summary: "Reads are being served from Postgres because Redis is failing"
+          runbook: "Panel 'Redis fallbacks & breaker'. Check Redis health; reconciler repairs after."
+
+      - alert: LeaderboardLockRetriesExhausted
+        expr: increase(leaderboard_optimistic_lock_exhausted_total[5m]) > 0
+        labels: {severity: ticket}
+        annotations:
+          summary: "Score writes returned ABORTED after exhausting optimistic-lock retries"
+          runbook: "Panel 'Optimistic lock retries'. Look for a hot player/board."

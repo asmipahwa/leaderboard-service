@@ -7,6 +7,7 @@ import com.asmipahwa.leaderboard.cache.LeaderboardCache.State;
 import com.asmipahwa.leaderboard.cache.LeaderboardRebuilder;
 import com.asmipahwa.leaderboard.cache.PlayerNameCache;
 import com.asmipahwa.leaderboard.cache.RedisGuard;
+import com.asmipahwa.leaderboard.debug.FaultInjector;
 import com.asmipahwa.leaderboard.domain.SortOrder;
 import com.asmipahwa.leaderboard.error.NotFoundException;
 import com.asmipahwa.leaderboard.error.UnavailableException;
@@ -44,6 +45,7 @@ public class LeaderboardQueryService {
   private final FriendsService friends;
   private final ScoreQueryDao scoreQueries;
   private final RedisGuard guard;
+  private final FaultInjector faults;
   private final Clock clock;
 
   public LeaderboardQueryService(
@@ -54,6 +56,7 @@ public class LeaderboardQueryService {
       FriendsService friends,
       ScoreQueryDao scoreQueries,
       RedisGuard guard,
+      FaultInjector faults,
       Clock clock) {
     this.registry = registry;
     this.cache = cache;
@@ -62,6 +65,7 @@ public class LeaderboardQueryService {
     this.friends = friends;
     this.scoreQueries = scoreQueries;
     this.guard = guard;
+    this.faults = faults;
     this.clock = clock;
   }
 
@@ -105,6 +109,7 @@ public class LeaderboardQueryService {
   }
 
   private PlayerRankResult playerRankFromRedis(ResolvedBoard board, String player, int window) {
+    faults.maybeSlowDownRankQuery();
     requireReady(board);
     double myScore =
         cache
