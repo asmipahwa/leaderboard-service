@@ -70,13 +70,77 @@ public class LeaderboardCache {
   private final RedisScript<List> topNScript;
 
   @SuppressWarnings("rawtypes")
+  private final RedisScript<List> playerRankScript;
+
+  @SuppressWarnings("rawtypes")
   public LeaderboardCache(
       StringRedisTemplate redis,
       RedisScript<List> recordScoreScript,
-      RedisScript<List> topNScript) {
+      RedisScript<List> topNScript,
+      RedisScript<List> playerRankScript) {
     this.redis = redis;
     this.recordScoreScript = recordScoreScript;
     this.topNScript = topNScript;
+    this.playerRankScript = playerRankScript;
+  }
+
+  /**
+   * A player's position plus the neighbours around them.
+   *
+   * @param state whether the set is complete (other fields are empty unless READY)
+   * @param ranked false if the player has no score on this board
+   * @param rankingScore the player's ranking score
+   * @param rank the player's competition rank
+   * @param total players on the board
+   * @param windowStart 0-based position of the first neighbour
+   * @param firstRank competition rank of the first neighbour
+   * @param members the window, best first (includes the player)
+   * @param names display names by player id
+   */
+  public record Neighborhood(
+      State state,
+      boolean ranked,
+      double rankingScore,
+      long rank,
+      long total,
+      long windowStart,
+      long firstRank,
+      List<Member> members,
+      java.util.Map<String, String> names) {}
+
+  /** Reads a player's rank and neighbours in one {@code EVALSHA} (scripts/player_rank.lua). */
+  public Neighborhood neighborhood(BoardKey key, String playerId, int around) {
+    List<?> result =
+        redis.execute(
+            playerRankScript,
+            List.of(key.zsetKey(), key.metaKey(), PlayerNameCache.KEY),
+            playerId,
+            Integer.toString(around));
+    State state = toState((String) result.get(0));
+    if (state != State.READY || ((Number) result.get(1)).longValue() == 0) {
+      return new Neighborhood(state, false, 0, 0, 0, 0, 0, List.of(), java.util.Map.of());
+    }
+    List<?> range = (List<?>) result.get(7);
+    List<?> names = (List<?>) result.get(8);
+    List<Member> members = new ArrayList<>(range.size() / 2);
+    java.util.Map<String, String> nameById = new java.util.HashMap<>(range.size());
+    for (int i = 0; i < range.size(); i += 2) {
+      String id = (String) range.get(i);
+      members.add(new Member(id, Double.parseDouble((String) range.get(i + 1))));
+      if (names.get(i / 2) != null) {
+        nameById.put(id, (String) names.get(i / 2));
+      }
+    }
+    return new Neighborhood(
+        state,
+        true,
+        Double.parseDouble((String) result.get(2)),
+        ((Number) result.get(3)).longValue(),
+        ((Number) result.get(4)).longValue(),
+        ((Number) result.get(5)).longValue(),
+        ((Number) result.get(6)).longValue(),
+        members,
+        nameById);
   }
 
   public State state(BoardKey key) {

@@ -26,6 +26,12 @@ public class RedisConfig {
   }
 
   @Bean
+  @SuppressWarnings("rawtypes")
+  public RedisScript<List> playerRankScript() {
+    return RedisScript.of(new ClassPathResource("scripts/player_rank.lua"), List.class);
+  }
+
+  @Bean
   public RedisScript<Long> releaseLockScript() {
     return RedisScript.of(new ClassPathResource("scripts/release_lock.lua"), Long.class);
   }

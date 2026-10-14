@@ -2,6 +2,7 @@ package com.asmipahwa.leaderboard.service;
 
 import com.asmipahwa.leaderboard.cache.LeaderboardCache;
 import com.asmipahwa.leaderboard.cache.LeaderboardCache.Member;
+import com.asmipahwa.leaderboard.cache.LeaderboardCache.Neighborhood;
 import com.asmipahwa.leaderboard.cache.LeaderboardCache.Page;
 import com.asmipahwa.leaderboard.cache.LeaderboardCache.State;
 import com.asmipahwa.leaderboard.cache.LeaderboardRebuilder;
@@ -123,24 +124,34 @@ public class LeaderboardQueryService {
 
   private PlayerRankResult playerRankFromRedis(ResolvedBoard board, String player, int window) {
     faults.maybeSlowDownRankQuery();
-    requireReady(board);
-    double myScore =
-        cache
-            .rankingScore(board.key(), player)
-            .orElseThrow(() -> new NotFoundException("Player has no score on this leaderboard"));
-    long myRank = cache.rankOf(board.key(), myScore);
-    long position = cache.position(board.key(), player).orElse(myRank - 1);
-    long total = cache.size(board.key());
-
-    long start = Math.max(0, position - window);
-    List<Member> members = cache.range(board.key(), start, position + window);
-    long firstRank =
-        members.isEmpty() || members.get(0).playerId().equals(player)
-            ? myRank
-            : cache.rankOf(board.key(), members.get(0).rankingScore());
+    Neighborhood around = cache.neighborhood(board.key(), player, window);
+    if (around.state() != State.READY) {
+      requireReady(board);
+      around = cache.neighborhood(board.key(), player, window);
+    }
+    if (!around.ranked()) {
+      throw new NotFoundException("Player has no score on this leaderboard");
+    }
+    SortOrder order = board.sortOrder();
+    List<Scored> scored = new ArrayList<>(around.members().size());
+    List<String> missingNames = new ArrayList<>();
+    for (Member member : around.members()) {
+      scored.add(new Scored(member.playerId(), order.fromRankingScore(member.rankingScore())));
+      if (!around.names().containsKey(member.playerId())) {
+        missingNames.add(member.playerId());
+      }
+    }
+    Map<String, String> displayNames = around.names();
+    if (!missingNames.isEmpty()) {
+      displayNames = new java.util.HashMap<>(around.names());
+      displayNames.putAll(names.namesOf(missingNames));
+    }
     RankedEntry fallbackSelf =
-        new RankedEntry(myRank, player, null, board.sortOrder().fromRankingScore(myScore));
-    return split(rank(board, members, start, firstRank), fallbackSelf, total);
+        new RankedEntry(around.rank(), player, null, order.fromRankingScore(around.rankingScore()));
+    return split(
+        Ranking.assign(scored, around.windowStart(), around.firstRank(), displayNames),
+        fallbackSelf,
+        around.total());
   }
 
   /** Splits a ranked window into the player, the entries above and the entries below. */
