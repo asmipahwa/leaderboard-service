@@ -103,6 +103,11 @@ val integrationTest by tasks.registering(Test::class) {
     useJUnitPlatform()
     include("**/*IT.class")
     shouldRunAfter(tasks.test)
+    // Opt-in diagnostics, e.g. ./gradlew integrationTest -PtracePinned
+    if (project.hasProperty("tracePinned")) {
+        jvmArgs("-Djdk.tracePinnedThreads=short")
+        environment("LOGGING_LEVEL_COM_ASMIPAHWA_LEADERBOARD_CACHE_REDISGUARD", "DEBUG")
+    }
 }
 
 tasks.check {

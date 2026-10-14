@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.binder.grpc.ObservationGrpcServerIntercepto
 import io.micrometer.observation.ObservationPredicate;
 import io.micrometer.observation.ObservationRegistry;
 import net.devh.boot.grpc.server.interceptor.GrpcGlobalServerInterceptor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.redis.ClientResourcesBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +47,10 @@ public class ObservabilityConfig {
 
   /** Makes Lettuce report each Redis command (EVALSHA, ZREVRANGE...) as a child span. */
   @Bean
+  @ConditionalOnProperty(
+      name = "leaderboard.tracing.redis-commands",
+      havingValue = "true",
+      matchIfMissing = true)
   public ClientResourcesBuilderCustomizer lettuceTracing(ObservationRegistry registry) {
     return builder -> builder.tracing(new MicrometerTracing(registry, "redis"));
   }

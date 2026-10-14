@@ -37,6 +37,8 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/leaderboard
       DB_PASSWORD: ${POSTGRES_PASSWORD:-leaderboard}
       REDIS_HOST: redis
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75}
       SPRING_PROFILES_ACTIVE: json
       OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
       TRACING_SAMPLING: ${TRACING_SAMPLING:-1.0}

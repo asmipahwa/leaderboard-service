@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 /**
  * Backs the resume claim "top-100 leaderboard queries in under 10 ms at p95".
  *
- * <p>90% GetTopN(n=100) and 10% GetPlayerRank against the seeded 100k-player board, ramping to
+ * <p>90% GetTopN(n=100) and 10% GetPlayerRank (change with -PrankShare) against the seeded 100k-player board, ramping to
  * {@code rate} requests/s (default 300) and holding for {@code duration} seconds (default 120),
  * after a warm-up that is not measured.
  */
@@ -39,6 +39,8 @@ public class ReadHeavySimulation extends Simulation {
 
   private static final int RATE = LoadConfig.intProp("rate", 300);
   private static final int DURATION = LoadConfig.intProp("duration", 120);
+  /** Percent of requests that are GetPlayerRank (the rest are GetTopN(100)). */
+  private static final int RANK_SHARE = LoadConfig.intProp("rankShare", 10);
   private static final List<String> PLAYERS = Fixtures.playerIds(10_000);
 
   private static final GetTopNRequest TOP_100 =
@@ -76,7 +78,7 @@ public class ReadHeavySimulation extends Simulation {
   private final ScenarioBuilder readers =
       scenario("Leaderboard readers")
           .randomSwitch()
-          .on(Choice.withWeight(90.0, topN), Choice.withWeight(10.0, playerRank));
+          .on(Choice.withWeight(100.0 - RANK_SHARE, topN), Choice.withWeight(RANK_SHARE, playerRank));
 
   {
     setUp(

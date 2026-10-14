@@ -60,7 +60,7 @@ protobuf {
 }
 
 // Pass load settings through, e.g. ./gradlew :load-test:gatlingRun --simulation ... -Prate=300
-val loadSettings = listOf("grpc.host", "grpc.port", "rate", "duration", "warmup", "users", "rounds", "pool", "channels")
+val loadSettings = listOf("grpc.host", "grpc.port", "rate", "duration", "warmup", "rankShare", "users", "rounds", "pool", "channels")
 
 tasks.withType<io.gatling.gradle.GatlingRunTask>().configureEach {
     systemProperties =
