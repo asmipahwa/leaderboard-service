@@ -90,8 +90,8 @@ public class DataSeeder implements ApplicationRunner {
         return;
       }
       jdbc.execute(
-          "TRUNCATE player_stats, score_events, scores, friendships, players, leaderboards, games"
-              + " CASCADE");
+          "TRUNCATE player_achievements, achievements, player_stats, score_events, scores,"
+              + " friendships, players, leaderboards, games CASCADE");
     }
     long started = System.nanoTime();
     seed();

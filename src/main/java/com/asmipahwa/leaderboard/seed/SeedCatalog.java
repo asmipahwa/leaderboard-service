@@ -3,6 +3,7 @@ package com.asmipahwa.leaderboard.seed;
 import com.asmipahwa.leaderboard.domain.ResetPeriod;
 import com.asmipahwa.leaderboard.domain.SortOrder;
 import java.util.List;
+import java.util.Map;
 
 /** The fixed set of demo games and leaderboards that {@link DataSeeder} creates. */
 public final class SeedCatalog {
@@ -74,6 +75,10 @@ public final class SeedCatalog {
               "Weekly Fastest Goal (ms)",
               SortOrder.ASC,
               ResetPeriod.WEEKLY));
+
+  /** Achievements created for every game: name to points needed in a single match. */
+  public static final Map<String, Long> ACHIEVEMENTS =
+      Map.of("Rising Star", 10_000L, "Pro", 20_000L, "Legend", 40_000L);
 
   private SeedCatalog() {}
 }
