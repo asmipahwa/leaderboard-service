@@ -5,11 +5,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.asmipahwa.leaderboard.support.IntegrationTestSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 /** Runs the seeder at small scale and checks the generated data is internally consistent. */
+// Own @SpringBootTest: the seed profile runs without a gRPC server.
+@SpringBootTest
 @ActiveProfiles("seed")
 @TestPropertySource(properties = {"seed.players=500", "seed.events=3000", "seed.reset=true"})
 class DataSeederIT extends IntegrationTestSupport {

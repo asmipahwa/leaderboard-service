@@ -60,4 +60,27 @@ class PeriodKeyResolverTest {
     assertThat(resolverAt("2026-01-01T00:00:00Z").at(ResetPeriod.DAILY, vancouverLateEvening))
         .isEqualTo("2026-10-15");
   }
+
+  @Test
+  void allTimeAndSeasonBoardsNeverExpireFromCache() {
+    PeriodKeyResolver resolver = resolverAt("2026-10-14T12:00:00Z");
+    assertThat(resolver.cacheExpiry(ResetPeriod.NONE, "all")).isEmpty();
+    assertThat(resolver.cacheExpiry(ResetPeriod.SEASON, "S1")).isEmpty();
+  }
+
+  @Test
+  void dailyBoardExpiresSevenDaysAfterTheDayEnds() {
+    assertThat(resolverAt("2026-10-14T12:00:00Z").cacheExpiry(ResetPeriod.DAILY, "2026-10-14"))
+        .contains(Instant.parse("2026-10-22T00:00:00Z"));
+  }
+
+  @Test
+  void weeklyBoardExpiresSevenDaysAfterTheWeekEnds() {
+    // 2026-W42 runs Mon Oct 12 to Sun Oct 18; the next week starts Oct 19.
+    assertThat(resolverAt("2026-10-14T12:00:00Z").cacheExpiry(ResetPeriod.WEEKLY, "2026-W42"))
+        .contains(Instant.parse("2026-10-26T00:00:00Z"));
+    // 2025-W01 starts Mon Dec 30 2024.
+    assertThat(resolverAt("2024-12-31T12:00:00Z").cacheExpiry(ResetPeriod.WEEKLY, "2025-W01"))
+        .contains(Instant.parse("2025-01-13T00:00:00Z"));
+  }
 }

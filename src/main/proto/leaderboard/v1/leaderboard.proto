@@ -1,0 +1,151 @@
+// Public contract of the Game Stats & Leaderboard Service.
+//
+// Evolution rules (see docs/API_EVOLUTION.md): only add fields, never renumber or reuse a field
+// number, mark removed fields as `reserved`, and cut a new package (leaderboard.v2) for breaking
+// changes.
+syntax = "proto3";
+
+package leaderboard.v1;
+
+option java_multiple_files = true;
+option java_package = "com.asmipahwa.leaderboard.grpc.v1";
+
+import "google/protobuf/timestamp.proto";
+
+// Ranking APIs: write scores and read global, around-me and friends leaderboards.
+service LeaderboardService {
+  rpc SubmitScore(SubmitScoreRequest) returns (SubmitScoreResponse);
+  // End-of-match bulk submit, e.g. every player in a lobby at once.
+  rpc BatchSubmitScores(BatchSubmitScoresRequest) returns (BatchSubmitScoresResponse);
+  rpc GetTopN(GetTopNRequest) returns (GetTopNResponse);
+  // The player's rank plus the players just above and below ("around me").
+  rpc GetPlayerRank(GetPlayerRankRequest) returns (GetPlayerRankResponse);
+  rpc GetFriendsLeaderboard(GetFriendsLeaderboardRequest) returns (GetTopNResponse);
+  // Server-streaming live updates: the current top N, then a new snapshot when it changes.
+  rpc StreamTopN(StreamTopNRequest) returns (stream GetTopNResponse);
+}
+
+// Per-player progress APIs.
+service PlayerStatsService {
+  rpc GetPlayerStats(GetPlayerStatsRequest) returns (PlayerStats);
+  // Paginated match history, newest first.
+  rpc GetScoreHistory(GetScoreHistoryRequest) returns (GetScoreHistoryResponse);
+}
+
+// Identifies one leaderboard period. An empty period_key means "the current period".
+message LeaderboardRef {
+  string game_id = 1;
+  string leaderboard_id = 2;
+  string period_key = 3;
+}
+
+message SubmitScoreRequest {
+  LeaderboardRef leaderboard = 1;
+  string player_id = 2;
+  int64 score = 3;
+  // Client-generated UUID per match result, so a retried request is never counted twice.
+  string idempotency_key = 4;
+  // Feeds player_stats.wins.
+  bool win = 5;
+}
+
+message SubmitScoreResponse {
+  // True if this submission beat the player's previous best.
+  bool improved = 1;
+  int64 best_score = 2;
+  // 1-based rank after this submission.
+  int64 rank = 3;
+  // Rank before this submission; 0 if the player was not on the board yet.
+  int64 previous_rank = 4;
+  repeated string unlocked_achievements = 5;
+}
+
+message BatchSubmitScoresRequest {
+  repeated SubmitScoreRequest submissions = 1;
+}
+
+message BatchSubmitScoresResponse {
+  repeated SubmitScoreResponse results = 1;
+}
+
+message GetTopNRequest {
+  LeaderboardRef leaderboard = 1;
+  int32 n = 2;
+  int32 offset = 3;
+}
+
+message LeaderboardEntry {
+  int64 rank = 1;
+  string player_id = 2;
+  string display_name = 3;
+  int64 score = 4;
+}
+
+message GetTopNResponse {
+  repeated LeaderboardEntry entries = 1;
+  int64 total_players = 2;
+  google.protobuf.Timestamp as_of = 3;
+}
+
+message GetPlayerRankRequest {
+  LeaderboardRef leaderboard = 1;
+  string player_id = 2;
+  // How many neighbours to return on each side. Defaults to 2.
+  int32 around = 3;
+}
+
+message GetPlayerRankResponse {
+  LeaderboardEntry me = 1;
+  repeated LeaderboardEntry above = 2;
+  repeated LeaderboardEntry below = 3;
+  // Share of the board this player beats, from 0.0 to 1.0.
+  double percentile = 4;
+}
+
+message GetFriendsLeaderboardRequest {
+  LeaderboardRef leaderboard = 1;
+  string player_id = 2;
+}
+
+message StreamTopNRequest {
+  LeaderboardRef leaderboard = 1;
+  int32 n = 2;
+}
+
+message GetPlayerStatsRequest {
+  string game_id = 1;
+  string player_id = 2;
+}
+
+message PlayerStats {
+  string player_id = 1;
+  string game_id = 2;
+  int64 matches_played = 3;
+  int64 total_score = 4;
+  int64 best_score = 5;
+  int64 wins = 6;
+  double win_rate = 7;
+  google.protobuf.Timestamp last_played_at = 8;
+  repeated string achievements = 9;
+}
+
+message GetScoreHistoryRequest {
+  string game_id = 1;
+  string player_id = 2;
+  int32 page_size = 3;
+  // Opaque cursor from a previous response; empty for the first page.
+  string page_token = 4;
+}
+
+message ScoreEvent {
+  int64 score = 1;
+  bool accepted = 2;
+  string leaderboard_id = 3;
+  google.protobuf.Timestamp received_at = 4;
+}
+
+message GetScoreHistoryResponse {
+  repeated ScoreEvent events = 1;
+  // Empty when there are no more pages.
+  string next_page_token = 2;
+}
