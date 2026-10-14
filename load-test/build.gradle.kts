@@ -63,5 +63,15 @@ protobuf {
 val loadSettings = listOf("grpc.host", "grpc.port", "rate", "duration", "warmup", "users", "rounds", "pool", "channels")
 
 tasks.withType<io.gatling.gradle.GatlingRunTask>().configureEach {
-    systemProperties = loadSettings.filter { project.hasProperty(it) }.associateWith { project.property(it).toString() }
+    systemProperties =
+        loadSettings.filter { project.hasProperty(it) }.associateWith { project.property(it).toString() } +
+        mapOf("load.dir" to layout.buildDirectory.get().asFile.absolutePath)
+}
+
+tasks.register<JavaExec>("verifyWrites") {
+    group = "verification"
+    description = "After ConcurrentWriteSimulation: checks Postgres and Redis to prove zero lost writes."
+    classpath = sourceSets["gatling"].runtimeClasspath
+    mainClass = "com.asmipahwa.leaderboard.load.WriteVerifier"
+    systemProperty("load.dir", layout.buildDirectory.get().asFile.absolutePath)
 }

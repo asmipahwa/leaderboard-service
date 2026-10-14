@@ -1,0 +1,9 @@
+WriteVerifier run=gatling-1791973831649
+  gatling SubmitScore requests: total=6000 ok=6000 ko=0
+  score_events rows for this run: 6000 (missing for OK responses: 0)
+  players touched: 500
+  best_score != max submitted: 0
+  matches_played != event count: 0
+  redis score != postgres best: 0
+  optimistic-lock retries during run: 13
+  LOST WRITES: 0

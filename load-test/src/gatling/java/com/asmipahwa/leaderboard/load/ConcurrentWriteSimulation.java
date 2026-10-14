@@ -71,9 +71,16 @@ public class ConcurrentWriteSimulation extends Simulation {
   public void before() {
     System.out.println("ConcurrentWriteSimulation run id: " + RUN_ID);
     try {
-      Path file = Path.of("build", "gatling-last-write-run.txt");
+      Path file = LoadConfig.LOAD_DIR.resolve("gatling-last-write-run.txt");
       Files.createDirectories(file.getParent());
-      Files.writeString(file, RUN_ID + "\n" + (USERS * ROUNDS) + "\n");
+      Files.writeString(
+          file,
+          RUN_ID
+              + "\n"
+              + (USERS * ROUNDS)
+              + "\n"
+              + WriteVerifier.optimisticLockRetries()
+              + "\n");
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }

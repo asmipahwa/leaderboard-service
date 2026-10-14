@@ -20,6 +20,10 @@ public final class LoadConfig {
   public static final String BOARD = System.getProperty("board", "season-1-high-score");
 
   /** The seeded 100k-player benchmark board (current period). */
+  /** load-test/build: where run files and evidence go (same path for Gatling and the verifier). */
+  public static final java.nio.file.Path LOAD_DIR =
+      java.nio.file.Path.of(System.getProperty("load.dir", "load-test/build"));
+
   public static final LeaderboardRef BENCHMARK_BOARD =
       LeaderboardRef.newBuilder().setGameId(GAME).setLeaderboardId(BOARD).build();
 
