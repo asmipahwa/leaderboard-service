@@ -44,7 +44,7 @@ dependencies {
     implementation("io.grpc:grpc-services:$grpcVersion")
     implementation("com.google.protobuf:protobuf-java:$protobufVersion")
     implementation("com.google.protobuf:protobuf-java-util:$protobufVersion")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.9.1")
     implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.2.0")
     implementation("io.github.resilience4j:resilience4j-micrometer:2.2.0")
     // Observability: traces via OpenTelemetry (exported to Jaeger), JDBC spans, JSON logs.
