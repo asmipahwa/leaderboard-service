@@ -78,6 +78,10 @@ Requires Docker. `make seed` loads 3 games, 8 leaderboards, 100k players and 500
 
 `make help` lists everything.
 
+**Troubleshooting**
+- `docker pull` / `make up` hangs at "load metadata": Docker Desktop's Docker Scout CLI hooks can block pulls. Turn off Scout hooks (Settings → Features, or remove `scout` from `plugins` in `~/.docker/config.json`), or use a minimal config: `DOCKER_CONFIG=$(mktemp -d) make up`.
+- Port 5432 is busy: the compose Postgres is published on **5433** so it never clashes with a local Postgres.
+
 ## API examples
 
 gRPC is the primary API ([`leaderboard.proto`](src/main/proto/leaderboard/v1/leaderboard.proto); reflection is on, so `grpcurl` needs no proto file):
