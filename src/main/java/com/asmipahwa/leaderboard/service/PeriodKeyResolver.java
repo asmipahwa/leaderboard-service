@@ -3,10 +3,14 @@ package com.asmipahwa.leaderboard.service;
 import com.asmipahwa.leaderboard.config.LeaderboardProperties;
 import com.asmipahwa.leaderboard.domain.ResetPeriod;
 import java.time.Clock;
+import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.IsoFields;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,6 +22,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class PeriodKeyResolver {
+
+  /** How long a finished daily/weekly period stays in Redis so players can still look at it. */
+  public static final Duration RETENTION_AFTER_END = Duration.ofDays(7);
 
   /** Key used by boards that never reset. */
   public static final String ALL_TIME = "all";
@@ -47,6 +54,34 @@ public class PeriodKeyResolver {
               utc.get(IsoFields.WEEK_BASED_YEAR), utc.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR));
         // Seasons are scheduled by live-ops, not by the calendar, so the active one is configured.
       case SEASON -> currentSeason;
+    };
+  }
+
+  /**
+   * When the Redis copy of a period can be dropped: the end of the period plus {@link
+   * #RETENTION_AFTER_END}. Empty for boards that never expire (all-time and seasons). Postgres
+   * keeps every period forever, so an expired board can always be rebuilt if someone asks for it.
+   */
+  public Optional<Instant> cacheExpiry(ResetPeriod period, String periodKey) {
+    return switch (period) {
+      case NONE, SEASON -> Optional.empty();
+      case DAILY ->
+          Optional.of(
+              LocalDate.parse(periodKey)
+                  .plusDays(1)
+                  .atStartOfDay(ZoneOffset.UTC)
+                  .toInstant()
+                  .plus(RETENTION_AFTER_END));
+      case WEEKLY -> {
+        int year = Integer.parseInt(periodKey.substring(0, 4));
+        int week = Integer.parseInt(periodKey.substring(6));
+        LocalDate monday =
+            LocalDate.of(year, 1, 4)
+                .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, week)
+                .with(DayOfWeek.MONDAY);
+        yield Optional.of(
+            monday.plusWeeks(1).atStartOfDay(ZoneOffset.UTC).toInstant().plus(RETENTION_AFTER_END));
+      }
     };
   }
 }
